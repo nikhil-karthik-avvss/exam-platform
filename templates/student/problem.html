@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+{% block title %}{{ problem['title'] }}{% endblock %}
+{% block content %}
+<div class="split-layout">
+
+  <!-- LEFT PANE: Problem Statement -->
+  <div class="split-left" id="stmt-pane">
+    <div class="pane-header">
+      <a href="/student" class="back-link">Back to Problems</a>
+      <h2 class="prob-title">{{ problem['title'] }}</h2>
+      <div class="prob-meta">
+        <span class="meta-tag">Time: {{ problem['time_limit'] }}s</span>
+        <span class="meta-tag">Memory: {{ problem['memory_limit'] }} MB</span>
+      </div>
+    </div>
+
+    <div class="stmt-body">
+      <section class="stmt-section">
+        <h4>Problem Statement</h4>
+        <div class="stmt-text">{{ problem['description'] | safe }}</div>
+      </section>
+
+      {% if problem['input_format'] %}
+      <section class="stmt-section">
+        <h4>Input Format</h4>
+        <div class="stmt-text">{{ problem['input_format'] | safe }}</div>
+      </section>
+      {% endif %}
+
+      {% if problem['output_format'] %}
+      <section class="stmt-section">
+        <h4>Output Format</h4>
+        <div class="stmt-text">{{ problem['output_format'] | safe }}</div>
+      </section>
+      {% endif %}
+
+      {% if problem['constraints'] %}
+      <section class="stmt-section">
+        <h4>Constraints</h4>
+        <div class="stmt-text mono-block">{{ problem['constraints'] | safe }}</div>
+      </section>
+      {% endif %}
+
+      {% if pub_tcs %}
+      <section class="stmt-section">
+        <h4>Sample Test Cases</h4>
+        {% for tc in pub_tcs %}
+        <div class="sample-tc">
+          {% if tc['label'] %}<div class="tc-label-text">{{ tc['label'] }}</div>{% endif %}
+          <div class="tc-columns">
+            <div class="tc-col">
+              <div class="tc-col-head">Input</div>
+              <pre class="tc-pre">{{ tc['input'] }}</pre>
+            </div>
+            <div class="tc-col">
+              <div class="tc-col-head">Output</div>
+              <pre class="tc-pre">{{ tc['expected_output'] }}</pre>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </section>
+      {% endif %}
+
+      {% if problem['sample_explanation'] %}
+      <section class="stmt-section">
+        <h4>Explanation</h4>
+        <div class="stmt-text">{{ problem['sample_explanation'] | safe }}</div>
+      </section>
+      {% endif %}
+    </div>
+
+    <!-- Previous submissions -->
+    {% if submissions %}
+    <div class="prev-subs">
+      <h4>Your Submissions</h4>
+      <table class="mini-table">
+        <thead><tr><th>#</th><th>Language</th><th>Status</th><th>Time</th><th>Space</th><th>At</th><th></th></tr></thead>
+        <tbody>
+          {% for s in submissions %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td><span class="lang-tag lang-{{ s['language'] }}">{{ s['language'] }}</span></td>
+            <td><span class="pill {% if s['status']=='Accepted' %}pill-green{% else %}pill-yellow{% endif %}">{{ s['status'] }}</span></td>
+            <td class="mono-sm">{{ s['time_complexity'] or '—' }}</td>
+            <td class="mono-sm">{{ s['space_complexity'] or '—' }}</td>
+            <td class="dim sm">{{ s['submitted_at'][5:16] }}</td>
+            <td><a href="/student/submission/{{ s['id'] }}" class="tbl-link">View</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- RIGHT PANE: Editor -->
+  <div class="split-right" id="editor-pane">
+
+    <div class="editor-topbar">
+      <select id="language" class="lang-select">
+        <option value="python">Python 3</option>
+        <option value="java">Java</option>
+      </select>
+      <button class="btn-ghost" onclick="clearEditor()">Clear</button>
+    </div>
+
+    <div class="editor-container">
+      <textarea id="code-editor"></textarea>
+    </div>
+
+    <!-- Test Case Panel -->
+    <div class="tc-panel">
+      <div class="tc-panel-top">
+        <span class="tc-panel-label">Test Cases</span>
+        <button class="btn-ghost sm" onclick="openCustomModal()">Add Custom</button>
+      </div>
+
+      <div class="tc-tabs" id="tc-tabs">
+        {% for tc in pub_tcs %}
+        <button class="tc-tab" data-idx="{{ loop.index0 }}" onclick="selectTC({{ loop.index0 }})">
+          Sample {{ loop.index }}
+        </button>
+        {% endfor %}
+        {% for tc in cust_tcs %}
+        <button class="tc-tab custom-tc-tab" data-idx="{{ loop.index0 + pub_tcs|length }}"
+                onclick="selectTC({{ loop.index0 + pub_tcs|length }})">
+          {{ tc['label'] or 'Custom ' ~ loop.index }}
+          <span class="tc-del" onclick="deleteCustomTC(event,{{ tc['id'] }})">x</span>
+        </button>
+        {% endfor %}
+        <button class="tc-tab" onclick="selectTC(-1)">Custom Input</button>
+      </div>
+
+      <div class="tc-io">
+        <div class="io-row">
+          <div class="io-col">
+            <label class="io-label">Input</label>
+            <textarea id="tc-input" class="io-area" rows="4"></textarea>
+          </div>
+          <div class="io-col">
+            <label class="io-label">Expected Output <span class="dim">(optional)</span></label>
+            <textarea id="tc-expected" class="io-area" rows="4"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="tc-actions">
+        <button class="btn-secondary full" onclick="runCode()">Run</button>
+      </div>
+
+      <div id="run-result" class="run-result hidden">
+        <div id="run-status"></div>
+        <div class="run-output-row">
+          <div class="io-col">
+            <label class="io-label">Output</label>
+            <pre id="run-stdout" class="output-pre"></pre>
+          </div>
+        </div>
+        <div id="run-err-wrap" class="hidden">
+          <label class="io-label err-label">Error</label>
+          <pre id="run-stderr" class="output-pre err-pre"></pre>
+        </div>
+        <div id="run-time" class="run-meta"></div>
+      </div>
+    </div>
+
+    <div class="submit-bar">
+      <button class="btn-primary full" id="submit-btn" onclick="submitSolution()">Submit Solution</button>
+    </div>
+
+    <!-- Submit Result -->
+    <div id="submit-result" class="submit-result hidden">
+      <div id="submit-header"></div>
+
+      <div class="complexity-card">
+        <div class="complexity-card-title">Complexity Analysis</div>
+        <div class="complexity-row">
+          <div class="complexity-box">
+            <div class="complexity-label">Time Complexity</div>
+            <div class="complexity-val" id="c-time">—</div>
+          </div>
+          <div class="complexity-box">
+            <div class="complexity-label">Space Complexity</div>
+            <div class="complexity-val" id="c-space">—</div>
+          </div>
+        </div>
+        <div class="complexity-notes" id="c-notes"></div>
+      </div>
+
+      <div class="tc-result-list" id="tc-result-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Custom TC Modal -->
+<div id="custom-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Add Custom Test Case</h3>
+      <button class="modal-close" onclick="closeCustomModal()">x</button>
+    </div>
+    <div class="field">
+      <label>Label <span class="dim">(optional)</span></label>
+      <input type="text" id="m-label" placeholder="e.g. Edge case"/>
+    </div>
+    <div class="field">
+      <label>Input</label>
+      <textarea id="m-input" rows="4" placeholder="Test input..."></textarea>
+    </div>
+    <div class="field">
+      <label>Expected Output <span class="dim">(optional)</span></label>
+      <textarea id="m-expected" rows="3" placeholder="Expected output..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeCustomModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveCustomTC()">Save</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const PROBLEM_ID = {{ problem['id'] }};
+const PUB_TCS    = {{ pub_tcs | tojson }};
+const CUST_TCS   = {{ cust_tcs | tojson }};
+const ALL_TCS    = [...PUB_TCS, ...CUST_TCS];
+
+// Init CodeMirror
+const editor = CodeMirror.fromTextArea(document.getElementById("code-editor"), {
+  mode: "python", theme: "dracula", lineNumbers: true,
+  indentUnit: 4, tabSize: 4, indentWithTabs: false, autofocus: true
+});
+editor.setSize("100%", "100%");
+editor.setValue("# Write your solution here\n\n");
+
+document.getElementById("language").addEventListener("change", function(){
+  const lang = this.value;
+  editor.setOption("mode", lang === "java" ? "text/x-java" : "python");
+  const val = editor.getValue().trim();
+  if (lang === "java" && (val === "" || val.startsWith("#"))) {
+    editor.setValue("public class Main {\n    public static void main(String[] args) {\n        // Write your solution here\n    }\n}");
+  } else if (lang === "python" && (val === "" || val.startsWith("public class"))) {
+    editor.setValue("# Write your solution here\n\n");
+  }
+});
+
+function clearEditor() {
+  const lang = document.getElementById("language").value;
+  editor.setValue(lang === "java"
+    ? "public class Main {\n    public static void main(String[] args) {\n        \n    }\n}"
+    : "# Write your solution here\n\n");
+}
+
+function selectTC(idx) {
+  document.querySelectorAll(".tc-tab").forEach(t => t.classList.remove("active"));
+  const tabs = document.querySelectorAll(".tc-tab");
+  // Map idx: -1 = last tab (custom input)
+  if (idx === -1) {
+    tabs[tabs.length - 1].classList.add("active");
+    document.getElementById("tc-input").value = "";
+    document.getElementById("tc-expected").value = "";
+    document.getElementById("tc-input").readOnly = false;
+    document.getElementById("tc-expected").readOnly = false;
+  } else {
+    tabs[idx].classList.add("active");
+    document.getElementById("tc-input").value = ALL_TCS[idx].input;
+    document.getElementById("tc-expected").value = ALL_TCS[idx].expected_output || "";
+    document.getElementById("tc-input").readOnly = true;
+    document.getElementById("tc-expected").readOnly = true;
+  }
+}
+if (PUB_TCS.length > 0) selectTC(0); else selectTC(-1);
+
+async function runCode() {
+  const code = editor.getValue();
+  const lang = document.getElementById("language").value;
+  const inp  = document.getElementById("tc-input").value;
+  const exp  = document.getElementById("tc-expected").value;
+  const res  = document.getElementById("run-result");
+  res.classList.remove("hidden");
+  document.getElementById("run-status").innerHTML = '<span class="status-running">Running...</span>';
+  document.getElementById("run-stdout").textContent = "";
+  document.getElementById("run-stderr").textContent = "";
+  document.getElementById("run-time").textContent = "";
+  document.getElementById("run-err-wrap").classList.add("hidden");
+
+  const r = await fetch("/student/run", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({code, language: lang, input: inp, expected: exp})
+  }).then(r=>r.json());
+
+  let statusHtml = "";
+  if (r.error === "tle") statusHtml = '<span class="status-tle">Time Limit Exceeded</span>';
+  else if (r.stderr && !r.stdout) statusHtml = '<span class="status-err">Runtime Error</span>';
+  else if (exp && r.stdout !== null)
+    statusHtml = r.passed
+      ? '<span class="status-pass">Correct</span>'
+      : '<span class="status-fail">Wrong Answer</span>';
+  else statusHtml = '<span class="status-done">Output</span>';
+  document.getElementById("run-status").innerHTML = statusHtml;
+  document.getElementById("run-stdout").textContent = r.stdout ?? "(no output)";
+  if (r.stderr) {
+    document.getElementById("run-err-wrap").classList.remove("hidden");
+    document.getElementById("run-stderr").textContent = r.stderr;
+  }
+  if (r.exec_time) document.getElementById("run-time").textContent = `Execution time: ${r.exec_time}s`;
+}
+
+async function submitSolution() {
+  const code = editor.getValue().trim();
+  if (!code) { alert("Please write your solution before submitting."); return; }
+  const lang = document.getElementById("language").value;
+  const btn  = document.getElementById("submit-btn");
+  btn.disabled = true; btn.textContent = "Judging...";
+
+  const r = await fetch("/student/submit", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({code, language: lang, problem_id: PROBLEM_ID})
+  }).then(r=>r.json());
+
+  btn.disabled = false; btn.textContent = "Submit Solution";
+  const accepted = r.status === "Accepted";
+  const wrap = document.getElementById("submit-result");
+  wrap.classList.remove("hidden");
+
+  document.getElementById("submit-header").innerHTML = `
+    <div class="submit-verdict ${accepted ? 'verdict-accepted' : 'verdict-partial'}">
+      <span class="verdict-text">${r.status}</span>
+      <span class="verdict-score">${r.score}% (${r.passed}/${r.total} test cases)</span>
+    </div>`;
+  document.getElementById("c-time").textContent  = r.time_complexity  || "—";
+  document.getElementById("c-space").textContent = r.space_complexity || "—";
+  document.getElementById("c-notes").textContent = r.complexity_notes || "";
+
+  let html = "";
+  r.public_results.forEach((t, i) => {
+    html += `<div class="tc-result-item ${t.passed?'tc-pass':'tc-fail'}">
+      <span class="tc-res-label">${t.passed?'Pass':'Fail'}</span>
+      <span>Sample ${i+1}</span>
+      ${t.exec_time ? `<span class="tc-time">${t.exec_time}s</span>` : ""}
+    </div>`;
+  });
+  if (r.private_results.length) {
+    html += `<div class="tc-section-label">Hidden Test Cases</div>`;
+    r.private_results.forEach((t, i) => {
+      html += `<div class="tc-result-item ${t.passed?'tc-pass':'tc-fail'}">
+        <span class="tc-res-label">${t.passed?'Pass':'Fail'}</span>
+        <span>Hidden TC ${i+1}</span>
+      </div>`;
+    });
+  }
+  document.getElementById("tc-result-list").innerHTML = html;
+  wrap.scrollIntoView({behavior:"smooth"});
+}
+
+function openCustomModal() { document.getElementById("custom-modal").classList.remove("hidden"); }
+function closeCustomModal() { document.getElementById("custom-modal").classList.add("hidden"); }
+
+async function saveCustomTC() {
+  const label = document.getElementById("m-label").value.trim();
+  const inp   = document.getElementById("m-input").value.trim();
+  const exp   = document.getElementById("m-expected").value.trim();
+  if (!inp) { alert("Input is required."); return; }
+  const r = await fetch("/student/add_custom_tc", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({problem_id:PROBLEM_ID, input:inp, expected_output:exp, label:label||"Custom"})
+  }).then(r=>r.json());
+  if (r.success) { closeCustomModal(); location.reload(); }
+}
+
+async function deleteCustomTC(e, tcId) {
+  e.stopPropagation();
+  if (!confirm("Delete this custom test case?")) return;
+  const r = await fetch(`/student/delete_custom_tc/${tcId}`, {method:"DELETE"}).then(r=>r.json());
+  if (r.success) location.reload();
+}
+</script>
+{% endblock %}

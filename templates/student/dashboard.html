@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — CP Exam{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Problem Set</h1>
+    <p class="page-sub">{{ settings['exam_name'] }}</p>
+  </div>
+  <div class="exam-badge {% if settings['exam_active'] %}badge-live{% else %}badge-waiting{% endif %}">
+    {% if settings['exam_active'] %}Exam Live{% else %}Waiting to Start{% endif %}
+  </div>
+</div>
+
+{% if not settings['exam_active'] %}
+<div class="notice notice-warn">
+  The exam has not started yet. Please wait for the professor to begin.
+</div>
+{% endif %}
+
+{% if problems %}
+<div class="problem-table-wrap">
+  <table class="problem-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Problem</th>
+        <th>Time Limit</th>
+        <th>Memory</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in problems %}
+      {% set st = statuses.get(p['id']) %}
+      <tr class="problem-row {% if st == 'Accepted' %}row-accepted{% elif st %}row-attempted{% endif %}"
+          onclick="window.location='/student/problem/{{ p['id'] }}'">
+        <td class="col-num">{{ loop.index }}</td>
+        <td class="col-title">
+          <a href="/student/problem/{{ p['id'] }}" class="problem-link">{{ p['title'] }}</a>
+        </td>
+        <td class="col-meta">{{ p['time_limit'] }}s</td>
+        <td class="col-meta">{{ p['memory_limit'] }} MB</td>
+        <td class="col-status">
+          {% if st == 'Accepted' %}
+            <span class="pill pill-green">Accepted</span>
+          {% elif st %}
+            <span class="pill pill-yellow">{{ st }}</span>
+          {% else %}
+            <span class="pill pill-gray">Not Attempted</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-box">
+  <div class="empty-title">No problems available</div>
+  <div class="empty-sub">Your professor will add problems shortly.</div>
+</div>
+{% endif %}
+{% endblock %}

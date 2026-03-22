@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Submission #{{ sub['id'] }}{% endblock %}
+{% block content %}
+<div class="content-narrow">
+  <a href="/admin/submissions" class="back-link">Back to Submissions</a>
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Submission #{{ sub['id'] }}</h1>
+      <p class="page-sub">{{ sub['roll_number'] }} &mdash; {{ sub['name'] }} &mdash; {{ sub['title'] }}</p>
+    </div>
+    <span class="pill lg {% if sub['status']=='Accepted' %}pill-green{% else %}pill-yellow{% endif %}">
+      {{ sub['status'] }}
+    </span>
+  </div>
+
+  <div class="meta-row">
+    <span class="lang-tag lang-{{ sub['language'] }}">{{ sub['language'] }}</span>
+    <span>Score: <strong>{{ sub['score'] }}%</strong></span>
+    <span class="dim">{{ sub['submitted_at'][5:16] }}</span>
+  </div>
+
+  <div class="complexity-card">
+    <div class="complexity-card-title">
+      Complexity Analysis
+      <span class="dim sm">&mdash; basis for Best Practices marks (10 marks, awarded manually)</span>
+    </div>
+    <div class="complexity-row">
+      <div class="complexity-box">
+        <div class="complexity-label">Time Complexity</div>
+        <div class="complexity-val">{{ sub['time_complexity'] or '—' }}</div>
+      </div>
+      <div class="complexity-box">
+        <div class="complexity-label">Space Complexity</div>
+        <div class="complexity-val">{{ sub['space_complexity'] or '—' }}</div>
+      </div>
+    </div>
+    {% if sub['complexity_notes'] %}<div class="complexity-notes">{{ sub['complexity_notes'] }}</div>{% endif %}
+    <div class="complexity-hint">
+      The platform detects the algorithm pattern and reports complexity. The professor awards Best Practices marks based on this.
+    </div>
+  </div>
+
+  <div class="card mt-3">
+    <h4 class="card-title">Test Case Results</h4>
+    {% for r in results %}
+    <div class="tc-result-item {{ 'tc-pass' if r['passed'] else 'tc-fail' }}">
+      <span class="tc-res-label">{{ 'Pass' if r['passed'] else 'Fail' }}</span>
+      <span>{{ r['label'] or ('Hidden TC' if r['type']=='private' else 'Test Case') }}</span>
+      <span class="tc-type-pill tc-{{ r['type'] }}">{{ r['type'] }}</span>
+      {% if r['exec_time'] %}<span class="tc-time">{{ r['exec_time'] }}s</span>{% endif %}
+    </div>
+    {% if not r['passed'] %}
+    <div class="tc-expand">
+      <div class="tc-detail-grid">
+        <div><div class="io-label">Input</div><pre class="tc-pre">{{ r['input'] }}</pre></div>
+        <div><div class="io-label">Expected</div><pre class="tc-pre">{{ r['expected_output'] }}</pre></div>
+        <div><div class="io-label">Student Output</div><pre class="tc-pre">{{ r['stdout'] or '(no output)' }}</pre></div>
+        {% if r['stderr'] %}<div><div class="io-label err-label">Error</div><pre class="tc-pre err-pre">{{ r['stderr'] }}</pre></div>{% endif %}
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+
+  <div class="card mt-3">
+    <h4 class="card-title">Submitted Code</h4>
+    <textarea id="code-view">{{ sub['code'] }}</textarea>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const v = CodeMirror.fromTextArea(document.getElementById("code-view"), {
+  mode: "{{ 'text/x-java' if sub['language']=='java' else 'python' }}",
+  theme: "dracula", lineNumbers: true, readOnly: true
+});
+v.setSize("100%", "500px");
+</script>
+{% endblock %}

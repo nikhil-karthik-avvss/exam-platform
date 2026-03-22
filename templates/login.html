@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Login — CP Exam Platform</title>
+<link rel="stylesheet" href="/static/css/style.css"/>
+</head>
+<body class="login-body">
+<div class="login-layout">
+  <div class="login-panel">
+
+    <div class="login-header">
+      <div class="login-logo"><span class="brand-mark lg"></span></div>
+      <h1 class="login-title">CP Exam Platform</h1>
+      <p class="login-course">Competitive Programming &mdash; End Semester Lab Exam</p>
+      <div class="offline-banner">
+        <span class="offline-dot"></span>
+        <strong>Offline Mode</strong> &mdash; No internet connection is used during this exam.
+      </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}{% for cat, msg in messages %}
+        <div class="flash flash-{{ cat }}">{{ msg }}</div>
+      {% endfor %}{% endif %}
+    {% endwith %}
+
+    <form method="POST" class="login-form">
+      <div class="field">
+        <label>Roll Number</label>
+        <input type="text" name="roll_number" placeholder="e.g. 3122237001001" required autofocus/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" name="password" placeholder="Enter password" required/>
+      </div>
+      <button type="submit" class="btn-primary full">Sign In</button>
+    </form>
+
+    <p class="login-help">Contact the professor if you are unable to log in.</p>
+  </div>
+  <div class="login-art">
+    <div class="art-inner">
+      <div class="art-title">End Semester Lab Practical</div>
+      <div class="art-sub">Competitive Programming</div>
+      <div class="art-rules">
+        <div class="art-rule">No internet access during the exam</div>
+        <div class="art-rule">All submissions are recorded</div>
+        <div class="art-rule">Best complexity earns Best Practices marks</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

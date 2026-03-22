@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-sub">{{ settings['exam_name'] }}</p>
+  </div>
+  <form method="POST" action="/admin/toggle_exam">
+    <button type="submit" class="btn-primary {% if settings['exam_active'] %}btn-danger-style{% endif %}">
+      {{ 'Stop Exam' if settings['exam_active'] else 'Start Exam' }}
+    </button>
+  </form>
+</div>
+
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="stat-num">{{ problems|length }}</div>
+    <div class="stat-lbl">Problems</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">{{ students|length }}</div>
+    <div class="stat-lbl">Students</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">{{ sub_count }}</div>
+    <div class="stat-lbl">Submissions</div>
+  </div>
+  <div class="stat-card {{ 'stat-live' if settings['exam_active'] else '' }}">
+    <div class="stat-num">{{ 'Live' if settings['exam_active'] else 'Off' }}</div>
+    <div class="stat-lbl">Exam Status</div>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Problems</h3>
+      <a href="/admin/problem/new" class="btn-primary sm">New Problem</a>
+    </div>
+    {% if problems %}
+    <table class="data-table">
+      <thead><tr><th>#</th><th>Title</th><th>Visibility</th><th>Time</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for p in problems %}
+        <tr>
+          <td class="dim">{{ loop.index }}</td>
+          <td><strong>{{ p['title'] }}</strong></td>
+          <td><span class="pill {% if p['active'] %}pill-green{% else %}pill-gray{% endif %}">
+            {{ 'Active' if p['active'] else 'Hidden' }}
+          </span></td>
+          <td class="dim">{{ p['time_limit'] }}s</td>
+          <td class="action-cell">
+            <a href="/admin/problem/{{ p['id'] }}/edit" class="tbl-link">Edit</a>
+            <a href="/admin/submissions?problem_id={{ p['id'] }}" class="tbl-link">Results</a>
+            <form method="POST" action="/admin/problem/{{ p['id'] }}/delete" style="display:inline"
+                  onsubmit="return confirm('Delete problem &quot;{{ p['title'] }}&quot; and all its data?')">
+              <button type="submit" class="tbl-link tbl-link-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-box sm">
+      <a href="/admin/problem/new" class="btn-primary">Create First Problem</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Quick Actions</h3>
+      </div>
+      <div class="action-list">
+        <a href="/admin/students" class="action-item">Manage Students</a>
+        <a href="/admin/submissions" class="action-item">View All Submissions</a>
+        <a href="/admin/export_csv" class="action-item">Export Results (CSV)</a>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header">
+        <h3 class="card-title">Network Info</h3>
+      </div>
+      <div class="network-info">
+        <p class="dim sm">Students connect to this machine via LAN. Share the URL below:</p>
+        <div class="network-url" id="network-url">Loading...</div>
+        <p class="dim sm mt-1">Students open this URL in their browser. No internet required.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+// Display the server's URL for students
+fetch('/admin/server_info').then(r=>r.json()).then(d=>{
+  document.getElementById('network-url').textContent = d.url || window.location.origin;
+}).catch(()=>{
+  document.getElementById('network-url').textContent = window.location.origin;
+});
+</script>
+{% endblock %}

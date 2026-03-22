@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>{% block title %}CP Exam Platform{% endblock %}</title>
+<link rel="stylesheet" href="/static/codemirror/codemirror.min.css"/>
+<link rel="stylesheet" href="/static/codemirror/theme/dracula.min.css"/>
+<link rel="stylesheet" href="/static/css/style.css"/>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-brand">
+      <span class="brand-mark"></span>
+      <span class="brand-name">CP Exam</span>
+    </div>
+    {% if session.get('role') == 'admin' %}
+    <div class="topbar-nav">
+      <a href="/admin" class="nav-link {% if request.path == '/admin' %}active{% endif %}">Dashboard</a>
+      <a href="/admin/students" class="nav-link {% if '/students' in request.path %}active{% endif %}">Students</a>
+      <a href="/admin/submissions" class="nav-link {% if '/submissions' in request.path %}active{% endif %}">Submissions</a>
+    </div>
+    {% endif %}
+  </div>
+  <div class="topbar-right">
+    {% if session.get('name') %}
+    <div class="offline-tag">OFFLINE</div>
+    <div class="user-info">
+      <span class="user-role">{{ 'Professor' if session.get('role') == 'admin' else 'Student' }}</span>
+      <span class="user-name">{{ session['name'] }}{% if session.get('role') != 'admin' %} &middot; {{ session['roll'] }}{% endif %}</span>
+    </div>
+    <a href="/logout" class="btn-logout">Logout</a>
+    {% endif %}
+  </div>
+</nav>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-bar">
+      {% for cat, msg in messages %}
+        <div class="flash flash-{{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<div class="page-wrap">
+{% block content %}{% endblock %}
+</div>
+
+<script src="/static/codemirror/codemirror.min.js"></script>
+<script src="/static/codemirror/mode/python/python.min.js"></script>
+<script src="/static/codemirror/mode/clike/clike.min.js"></script>
+<script src="/static/js/app.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

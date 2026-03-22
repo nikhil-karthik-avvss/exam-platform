@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit Problem' if problem else 'New Problem' }}{% endblock %}
+{% block content %}
+<div class="content-wide">
+  <a href="/admin" class="back-link">Back to Dashboard</a>
+  <h1 class="page-title">{{ 'Edit: ' + problem['title'] if problem else 'New Problem' }}</h1>
+
+  <div class="two-col top-align">
+
+    <!-- Problem Form -->
+    <form method="POST" class="card form-card">
+      <div class="field">
+        <label>Title <span class="req">*</span></label>
+        <input type="text" name="title" required value="{{ problem['title'] if problem else '' }}"
+               placeholder="e.g. Two Sum"/>
+      </div>
+      <div class="field">
+        <label>Problem Statement <span class="req">*</span></label>
+        <textarea name="description" rows="7" required
+                  placeholder="Describe the problem...">{{ problem['description'] if problem else '' }}</textarea>
+      </div>
+      <div class="two-col-sm">
+        <div class="field">
+          <label>Input Format</label>
+          <textarea name="input_format" rows="3"
+                    placeholder="Describe input...">{{ problem['input_format'] if problem else '' }}</textarea>
+        </div>
+        <div class="field">
+          <label>Output Format</label>
+          <textarea name="output_format" rows="3"
+                    placeholder="Describe output...">{{ problem['output_format'] if problem else '' }}</textarea>
+        </div>
+      </div>
+      <div class="field">
+        <label>Constraints</label>
+        <textarea name="constraints" rows="2"
+                  placeholder="e.g. 1 ≤ n ≤ 10^5">{{ problem['constraints'] if problem else '' }}</textarea>
+      </div>
+      <div class="field">
+        <label>Sample Explanation</label>
+        <textarea name="sample_explanation" rows="3"
+                  placeholder="Explain the sample...">{{ problem['sample_explanation'] if problem else '' }}</textarea>
+      </div>
+      <div class="three-col">
+        <div class="field">
+          <label>Time Limit (s)</label>
+          <input type="number" name="time_limit" min="1" max="30"
+                 value="{{ problem['time_limit'] if problem else 5 }}"/>
+        </div>
+        <div class="field">
+          <label>Memory Limit (MB)</label>
+          <input type="number" name="memory_limit" min="32" max="1024"
+                 value="{{ problem['memory_limit'] if problem else 256 }}"/>
+        </div>
+        {% if problem %}
+        <div class="field">
+          <label>Visibility</label>
+          <select name="active">
+            <option value="1" {% if problem['active'] %}selected{% endif %}>Active</option>
+            <option value="0" {% if not problem['active'] %}selected{% endif %}>Hidden</option>
+          </select>
+        </div>
+        {% endif %}
+      </div>
+      <button type="submit" class="btn-primary">
+        {{ 'Save Changes' if problem else 'Create Problem' }}
+      </button>
+    </form>
+
+    <!-- Test Case Manager (only after problem is created) -->
+    {% if problem %}
+    <div>
+      <!-- Public TCs -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Public Test Cases
+            <span class="count-badge">{{ pub_tcs|length }}</span>
+          </h3>
+          <span class="dim sm">Visible to students</span>
+        </div>
+        <div id="pub-tc-list">
+          {% for tc in pub_tcs %}
+          <div class="tc-item" id="tcitem-{{ tc['id'] }}">
+            <div class="tc-item-info">
+              <div class="tc-item-lbl">{{ tc['label'] or 'Sample' }}</div>
+              <div class="tc-item-prev dim sm">Input: {{ tc['input'][:50] }}{% if tc['input']|length > 50 %}...{% endif %}</div>
+            </div>
+            <button class="btn-ghost sm danger" onclick="deleteTC({{ tc['id'] }}, 'tcitem-{{ tc['id'] }}')">Remove</button>
+          </div>
+          {% else %}
+          <p class="dim sm">No public test cases yet.</p>
+          {% endfor %}
+        </div>
+        <button class="btn-ghost sm mt-2" onclick="showTCForm('public')">Add Public TC</button>
+      </div>
+
+      <!-- Private TCs -->
+      <div class="card mt-3">
+        <div class="card-header">
+          <h3 class="card-title">Private Test Cases
+            <span class="count-badge">{{ priv_tcs|length }}</span>
+          </h3>
+          <span class="dim sm">Pass / Fail only</span>
+        </div>
+        <div id="priv-tc-list">
+          {% for tc in priv_tcs %}
+          <div class="tc-item" id="tcitem-{{ tc['id'] }}">
+            <div class="tc-item-info">
+              <div class="tc-item-lbl">{{ tc['label'] or 'Hidden TC' }}</div>
+              <div class="tc-item-prev dim sm">Input: {{ tc['input'][:50] }}{% if tc['input']|length > 50 %}...{% endif %}</div>
+            </div>
+            <button class="btn-ghost sm danger" onclick="deleteTC({{ tc['id'] }}, 'tcitem-{{ tc['id'] }}')">Remove</button>
+          </div>
+          {% else %}
+          <p class="dim sm">No private test cases yet.</p>
+          {% endfor %}
+        </div>
+        <button class="btn-ghost sm mt-2" onclick="showTCForm('private')">Add Private TC</button>
+      </div>
+
+      <!-- Inline TC Form -->
+      <div id="tc-form" class="card mt-3 hidden">
+        <h4 class="card-title" id="tc-form-title">Add Test Case</h4>
+        <div class="field">
+          <label>Label <span class="dim">(optional)</span></label>
+          <input type="text" id="tc-label" placeholder="e.g. Large input"/>
+        </div>
+        <div class="two-col-sm">
+          <div class="field">
+            <label>Input <span class="req">*</span></label>
+            <textarea id="tc-input" rows="5" placeholder="Test input..."></textarea>
+          </div>
+          <div class="field">
+            <label>Expected Output <span class="req">*</span></label>
+            <textarea id="tc-expected" rows="5" placeholder="Expected output..."></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-ghost" onclick="hideTCForm()">Cancel</button>
+          <button class="btn-primary" onclick="saveTC()">Save Test Case</button>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="card hint-card">
+      <p>After creating the problem, you will be able to add public and private test cases here.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if problem %}
+<script>
+const PROBLEM_ID = {{ problem['id'] }};
+let tcType = 'public';
+
+function showTCForm(type) {
+  tcType = type;
+  document.getElementById("tc-form-title").textContent = type === 'private' ? 'Add Private Test Case' : 'Add Public Test Case';
+  document.getElementById("tc-form").classList.remove("hidden");
+  document.getElementById("tc-input").focus();
+}
+function hideTCForm() {
+  document.getElementById("tc-form").classList.add("hidden");
+  ["tc-label","tc-input","tc-expected"].forEach(id => document.getElementById(id).value = "");
+}
+async function saveTC() {
+  const inp = document.getElementById("tc-input").value.trim();
+  const exp = document.getElementById("tc-expected").value.trim();
+  const lbl = document.getElementById("tc-label").value.trim();
+  if (!inp || !exp) { alert("Input and expected output are required."); return; }
+  const r = await fetch(`/admin/problem/${PROBLEM_ID}/add_tc`, {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({input:inp, expected_output:exp, type:tcType, label:lbl})
+  }).then(r=>r.json());
+  if (r.success) location.reload();
+}
+async function deleteTC(tcId, elemId) {
+  if (!confirm("Delete this test case?")) return;
+  const r = await fetch(`/admin/testcase/${tcId}/delete`, {method:"DELETE"}).then(r=>r.json());
+  if (r.success) document.getElementById(elemId).remove();
+}
+</script>
+{% endif %}
+{% endblock %}
