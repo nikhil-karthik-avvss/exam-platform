@@ -9,6 +9,11 @@
 
   <div class="filter-row">
     <form method="GET" class="filter-form">
+      <select name="batch" onchange="this.form.submit()">
+        <option value="">All Batches</option>
+        <option value="batch1" {% if sel_batch=='batch1' %}selected{% endif %}>Batch 1</option>
+        <option value="batch2" {% if sel_batch=='batch2' %}selected{% endif %}>Batch 2</option>
+      </select>
       <select name="problem_id" onchange="this.form.submit()">
         <option value="">All Problems</option>
         {% for p in problems %}
@@ -21,7 +26,7 @@
         <option value="{{ s['id'] }}" {% if sel_sid == s['id']|string %}selected{% endif %}>{{ s['roll_number'] }} — {{ s['name'] }}</option>
         {% endfor %}
       </select>
-      {% if sel_pid or sel_sid %}
+      {% if sel_pid or sel_sid or sel_batch %}
       <a href="/admin/submissions" class="btn-ghost sm">Clear</a>
       {% endif %}
     </form>
@@ -33,11 +38,12 @@
       <thead>
         <tr>
           <th>Student</th>
+          <th>Batch</th>
           <th>Problem</th>
           <th>Lang</th>
           <th>Status</th>
-          <th>Time Complexity</th>
-          <th>Space Complexity</th>
+          <th>Time</th>
+          <th>Space</th>
           <th>Submitted</th>
           <th></th>
         </tr>
@@ -48,6 +54,11 @@
           <td>
             <div><strong>{{ s['roll_number'] }}</strong></div>
             <div class="dim sm">{{ s['name'] }}</div>
+          </td>
+          <td>
+            {% if s['student_batch'] == 'batch1' %}<span class="batch-tag b1">B1</span>
+            {% elif s['student_batch'] == 'batch2' %}<span class="batch-tag b2">B2</span>
+            {% else %}<span class="dim sm">—</span>{% endif %}
           </td>
           <td>{{ s['title'] }}</td>
           <td><span class="lang-tag lang-{{ s['language'] }}">{{ s['language'] }}</span></td>

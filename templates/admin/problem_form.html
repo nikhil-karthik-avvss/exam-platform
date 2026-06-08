@@ -7,7 +7,7 @@
 
   <div class="two-col top-align">
 
-    <!-- Problem Form -->
+    <!-- ── Problem Form ── -->
     <form method="POST" class="card form-card">
       <div class="field">
         <label>Title <span class="req">*</span></label>
@@ -34,7 +34,7 @@
       <div class="field">
         <label>Constraints</label>
         <textarea name="constraints" rows="2"
-                  placeholder="e.g. 1 ≤ n ≤ 10^5">{{ problem['constraints'] if problem else '' }}</textarea>
+                  placeholder="e.g. 1 ≤ n ≤ 10⁵">{{ problem['constraints'] if problem else '' }}</textarea>
       </div>
       <div class="field">
         <label>Sample Explanation</label>
@@ -52,98 +52,180 @@
           <input type="number" name="memory_limit" min="32" max="1024"
                  value="{{ problem['memory_limit'] if problem else 256 }}"/>
         </div>
-        {% if problem %}
         <div class="field">
-          <label>Visibility</label>
-          <select name="active">
-            <option value="1" {% if problem['active'] %}selected{% endif %}>Active</option>
-            <option value="0" {% if not problem['active'] %}selected{% endif %}>Hidden</option>
+          <label>Assign to Batch</label>
+          <select name="batch">
+            <option value="both"   {% if not problem or problem['batch']=='both'   %}selected{% endif %}>Both Batches</option>
+            <option value="batch1" {% if problem and problem['batch']=='batch1' %}selected{% endif %}>Batch 1 Only</option>
+            <option value="batch2" {% if problem and problem['batch']=='batch2' %}selected{% endif %}>Batch 2 Only</option>
           </select>
         </div>
-        {% endif %}
       </div>
-      <button type="submit" class="btn-primary">
+      {% if problem %}
+      <div class="field">
+        <label>Visibility</label>
+        <select name="active">
+          <option value="1" {% if problem['active'] %}selected{% endif %}>Active (visible to students)</option>
+          <option value="0" {% if not problem['active'] %}selected{% endif %}>Hidden</option>
+        </select>
+      </div>
+      {% endif %}
+
+      <!-- Code Templates -->
+      <details style="margin-top:8px;">
+        <summary style="cursor:pointer;font-size:13px;color:var(--text2);font-weight:500;padding:6px 0;">
+          Code Templates <span class="dim">(pre-filled in student editor)</span>
+        </summary>
+        <div style="margin-top:10px;">
+          <div class="field">
+            <label>Python 3 Template</label>
+            <textarea name="python_template" rows="6"
+                      style="font-family:'SFMono-Regular',monospace;font-size:12.5px;"
+                      placeholder="# Write your solution here&#10;">{{ problem['python_template'] if problem else '' }}</textarea>
+          </div>
+          <div class="field">
+            <label>Java Template</label>
+            <textarea name="java_template" rows="8"
+                      style="font-family:'SFMono-Regular',monospace;font-size:12.5px;"
+                      placeholder="public class Main {&#10;    public static void main(String[] args) {&#10;        &#10;    }&#10;}">{{ problem['java_template'] if problem else '' }}</textarea>
+          </div>
+        </div>
+      </details>
+
+      <!-- Reference Solution -->
+      <details style="margin-top:6px;" {% if problem and problem['solution_code'] %}open{% endif %}>
+        <summary style="cursor:pointer;font-size:13px;color:var(--text2);font-weight:500;padding:6px 0;">
+          Reference Solution
+          <span class="dim">(auto-generates test case expected outputs when you only enter input)</span>
+          {% if problem and problem['solution_code'] %}
+            <span style="color:var(--green,#3fb950);margin-left:6px;font-size:11px;">&#10003; saved</span>
+          {% endif %}
+        </summary>
+        <div style="margin-top:10px;">
+          <div class="field">
+            <label>Solution Language</label>
+            <select name="solution_language" style="max-width:160px;">
+              <option value="python" {% if not problem or problem['solution_language']=='python' %}selected{% endif %}>Python 3</option>
+              <option value="java"   {% if problem and problem['solution_language']=='java'   %}selected{% endif %}>Java</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Solution Code <span class="dim">(correct reference code — only visible to professor)</span></label>
+            <textarea name="solution_code" rows="12"
+                      style="font-family:'SFMono-Regular',monospace;font-size:12.5px;"
+                      placeholder="Paste your reference/model solution here. When you add a test case with only the input, the platform runs this code to fill in the expected output automatically.">{{ problem['solution_code'] if problem else '' }}</textarea>
+          </div>
+        </div>
+      </details>
+
+      <button type="submit" class="btn-primary" style="margin-top:14px;">
         {{ 'Save Changes' if problem else 'Create Problem' }}
       </button>
     </form>
 
-    <!-- Test Case Manager (only after problem is created) -->
+    <!-- ── Test Case Manager ── -->
     {% if problem %}
     <div>
       <!-- Public TCs -->
       <div class="card">
         <div class="card-header">
-          <h3 class="card-title">Public Test Cases
-            <span class="count-badge">{{ pub_tcs|length }}</span>
-          </h3>
+          <h3 class="card-title">Public Test Cases <span class="count-badge">{{ pub_tcs|length }}</span></h3>
           <span class="dim sm">Visible to students</span>
         </div>
         <div id="pub-tc-list">
           {% for tc in pub_tcs %}
           <div class="tc-item" id="tcitem-{{ tc['id'] }}">
             <div class="tc-item-info">
-              <div class="tc-item-lbl">{{ tc['label'] or 'Sample' }}</div>
-              <div class="tc-item-prev dim sm">Input: {{ tc['input'][:50] }}{% if tc['input']|length > 50 %}...{% endif %}</div>
+              <div class="tc-item-lbl">{{ tc['label'] or 'Sample ' ~ loop.index }}</div>
+              <div class="tc-item-prev dim sm">{{ tc['input'][:60] }}{% if tc['input']|length > 60 %}…{% endif %}</div>
             </div>
             <button class="btn-ghost sm danger" onclick="deleteTC({{ tc['id'] }}, 'tcitem-{{ tc['id'] }}')">Remove</button>
           </div>
           {% else %}
-          <p class="dim sm">No public test cases yet.</p>
+          <p class="dim sm" style="padding:4px 0;">No public test cases yet.</p>
           {% endfor %}
         </div>
-        <button class="btn-ghost sm mt-2" onclick="showTCForm('public')">Add Public TC</button>
+        <button class="btn-ghost sm mt-2" onclick="showTCForm('public')">+ Add Public TC</button>
       </div>
 
       <!-- Private TCs -->
       <div class="card mt-3">
         <div class="card-header">
-          <h3 class="card-title">Private Test Cases
-            <span class="count-badge">{{ priv_tcs|length }}</span>
-          </h3>
-          <span class="dim sm">Pass / Fail only</span>
+          <h3 class="card-title">Private Test Cases <span class="count-badge">{{ priv_tcs|length }}</span></h3>
+          <span class="dim sm">Pass/Fail only — hidden from students</span>
         </div>
         <div id="priv-tc-list">
           {% for tc in priv_tcs %}
           <div class="tc-item" id="tcitem-{{ tc['id'] }}">
             <div class="tc-item-info">
-              <div class="tc-item-lbl">{{ tc['label'] or 'Hidden TC' }}</div>
-              <div class="tc-item-prev dim sm">Input: {{ tc['input'][:50] }}{% if tc['input']|length > 50 %}...{% endif %}</div>
+              <div class="tc-item-lbl">{{ tc['label'] or 'Hidden TC ' ~ loop.index }}</div>
+              <div class="tc-item-prev dim sm">{{ tc['input'][:60] }}{% if tc['input']|length > 60 %}…{% endif %}</div>
             </div>
             <button class="btn-ghost sm danger" onclick="deleteTC({{ tc['id'] }}, 'tcitem-{{ tc['id'] }}')">Remove</button>
           </div>
           {% else %}
-          <p class="dim sm">No private test cases yet.</p>
+          <p class="dim sm" style="padding:4px 0;">No private test cases yet.</p>
           {% endfor %}
         </div>
-        <button class="btn-ghost sm mt-2" onclick="showTCForm('private')">Add Private TC</button>
+        <button class="btn-ghost sm mt-2" onclick="showTCForm('private')">+ Add Private TC</button>
       </div>
 
-      <!-- Inline TC Form -->
+      <!-- Add TC form -->
       <div id="tc-form" class="card mt-3 hidden">
         <h4 class="card-title" id="tc-form-title">Add Test Case</h4>
+
+        {% if problem['solution_code'] %}
+        <div class="notice notice-info" style="margin-bottom:12px;font-size:12.5px;">
+          Reference solution is saved. Leave <em>Expected Output</em> empty to auto-generate.
+        </div>
+        {% else %}
+        <div class="notice notice-warn" style="margin-bottom:12px;font-size:12.5px;">
+          No reference solution saved yet. You must enter the expected output manually,
+          or save the problem with a reference solution first.
+        </div>
+        {% endif %}
+
         <div class="field">
           <label>Label <span class="dim">(optional)</span></label>
-          <input type="text" id="tc-label" placeholder="e.g. Large input"/>
+          <input type="text" id="tc-label" placeholder="e.g. Large array"/>
         </div>
         <div class="two-col-sm">
           <div class="field">
             <label>Input <span class="req">*</span></label>
-            <textarea id="tc-input" rows="5" placeholder="Test input..."></textarea>
+            <textarea id="tc-input" rows="6"
+                      style="font-family:'SFMono-Regular',monospace;font-size:12.5px;"
+                      placeholder="Test input..."></textarea>
           </div>
           <div class="field">
-            <label>Expected Output <span class="req">*</span></label>
-            <textarea id="tc-expected" rows="5" placeholder="Expected output..."></textarea>
+            <label>
+              Expected Output
+              {% if problem['solution_code'] %}
+                <span class="dim">(auto-filled if empty)</span>
+              {% else %}
+                <span class="req">*</span>
+              {% endif %}
+            </label>
+            <textarea id="tc-expected" rows="6"
+                      style="font-family:'SFMono-Regular',monospace;font-size:12.5px;"
+                      placeholder="Expected output…&#10;(leave blank to auto-generate from reference solution)"></textarea>
+            {% if problem['solution_code'] %}
+            <button type="button" class="btn-ghost sm" style="margin-top:6px;"
+                    onclick="previewOutput()">
+              Run Solution on Input
+            </button>
+            <span id="gen-status" class="dim sm" style="margin-left:6px;"></span>
+            {% endif %}
           </div>
         </div>
         <div class="form-actions">
           <button class="btn-ghost" onclick="hideTCForm()">Cancel</button>
-          <button class="btn-primary" onclick="saveTC()">Save Test Case</button>
+          <button class="btn-primary" id="save-tc-btn" onclick="saveTC()">Save Test Case</button>
         </div>
       </div>
     </div>
     {% else %}
     <div class="card hint-card">
-      <p>After creating the problem, you will be able to add public and private test cases here.</p>
+      <p>After creating the problem, you can add test cases and a reference solution here.</p>
     </div>
     {% endif %}
   </div>
@@ -154,29 +236,78 @@
 {% if problem %}
 <script>
 const PROBLEM_ID = {{ problem['id'] }};
+const HAS_SOLUTION = {{ 'true' if problem['solution_code'] else 'false' }};
 let tcType = 'public';
 
 function showTCForm(type) {
   tcType = type;
-  document.getElementById("tc-form-title").textContent = type === 'private' ? 'Add Private Test Case' : 'Add Public Test Case';
+  document.getElementById("tc-form-title").textContent =
+    type === 'private' ? 'Add Private Test Case' : 'Add Public Test Case';
   document.getElementById("tc-form").classList.remove("hidden");
   document.getElementById("tc-input").focus();
 }
+
 function hideTCForm() {
   document.getElementById("tc-form").classList.add("hidden");
-  ["tc-label","tc-input","tc-expected"].forEach(id => document.getElementById(id).value = "");
+  ["tc-label","tc-input","tc-expected"].forEach(id =>
+    document.getElementById(id).value = "");
+  const st = document.getElementById("gen-status");
+  if (st) st.textContent = "";
 }
+
+async function previewOutput() {
+  const inp = document.getElementById("tc-input").value.trim();
+  if (!inp) { alert("Enter the test input first."); return; }
+  const st  = document.getElementById("gen-status");
+  st.textContent = "Running…";
+  const r = await fetch(`/admin/problem/${PROBLEM_ID}/run_solution`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({input: inp})
+  }).then(r => r.json()).catch(() => ({error: "Network error"}));
+  if (r.output !== undefined) {
+    document.getElementById("tc-expected").value = r.output;
+    st.textContent = "Generated.";
+  } else {
+    st.textContent = "Error: " + (r.error || "Unknown");
+    st.style.color = "var(--red,#f85149)";
+  }
+}
+
 async function saveTC() {
   const inp = document.getElementById("tc-input").value.trim();
   const exp = document.getElementById("tc-expected").value.trim();
   const lbl = document.getElementById("tc-label").value.trim();
-  if (!inp || !exp) { alert("Input and expected output are required."); return; }
+  if (!inp) { alert("Input is required."); return; }
+  if (!exp && !HAS_SOLUTION) {
+    alert("Expected output is required (no reference solution is saved for this problem).");
+    return;
+  }
+
+  const btn = document.getElementById("save-tc-btn");
+  btn.disabled = true;
+  btn.textContent = "Saving…";
+
   const r = await fetch(`/admin/problem/${PROBLEM_ID}/add_tc`, {
-    method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({input:inp, expected_output:exp, type:tcType, label:lbl})
-  }).then(r=>r.json());
-  if (r.success) location.reload();
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({input: inp, expected_output: exp, type: tcType, label: lbl})
+  }).then(r => r.json()).catch(() => ({error: "Network error"}));
+
+  btn.disabled = false;
+  btn.textContent = "Save Test Case";
+
+  if (r.success) {
+    if (r.generated) {
+      // Show brief notice that output was auto-generated, then reload
+      alert("Test case saved — expected output was auto-generated from the reference solution.");
+    }
+    location.reload();
+  } else {
+    alert("Error: " + (r.error || "Unknown error"));
+  }
 }
+
 async function deleteTC(tcId, elemId) {
   if (!confirm("Delete this test case?")) return;
   const r = await fetch(`/admin/testcase/${tcId}/delete`, {method:"DELETE"}).then(r=>r.json());

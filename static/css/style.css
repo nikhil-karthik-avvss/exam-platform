@@ -309,7 +309,7 @@ a:hover { text-decoration: underline; }
 }
 .split-right {
   background: var(--bg1); position: sticky; top: 52px;
-  height: calc(100vh - 52px); overflow-y: auto;
+  height: calc(100vh - 52px); overflow: hidden;
   display: flex; flex-direction: column;
 }
 
@@ -335,14 +335,9 @@ a:hover { text-decoration: underline; }
 .mini-table td { padding: 7px 8px; border-bottom: 1px solid rgba(48,54,61,0.4); }
 
 /* ── Editor Panel ── */
-.editor-topbar {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 14px; border-bottom: 1px solid var(--border);
-  background: var(--bg2); flex-shrink: 0;
-}
 .lang-select { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 5px 10px; border-radius: var(--radius); font-size: 13px; cursor: pointer; }
-.editor-container { flex: 0 0 300px; overflow: hidden; border-bottom: 1px solid var(--border); }
-.CodeMirror { font-size: 13.5px !important; font-family: 'SFMono-Regular','Consolas','Courier New',monospace !important; height: 300px !important; }
+.editor-container { flex: 0 0 320px; overflow: hidden; border-bottom: 1px solid var(--border); }
+.CodeMirror { font-size: 13.5px !important; font-family: 'SFMono-Regular','Consolas','Courier New',monospace !important; height: 320px !important; }
 
 /* ── TC Panel ── */
 .tc-panel { padding: 12px 14px; flex: 1; overflow-y: auto; }
@@ -445,3 +440,59 @@ a:hover { text-decoration: underline; }
 
 /* ── Hidden ── */
 .hidden { display: none !important; }
+
+/* ── Batch Tags ── */
+.batch-tag { display: inline-flex; padding: 2px 9px; border-radius: 99px; font-size: 11.5px; font-weight: 600; }
+.batch-tag.b1   { background: rgba(79,142,247,0.12); color: #79b8ff; border: 1px solid rgba(79,142,247,0.25); }
+.batch-tag.b2   { background: rgba(163,94,247,0.12); color: #c9a4ff; border: 1px solid rgba(163,94,247,0.25); }
+.batch-tag.both { background: rgba(110,118,129,0.1);  color: var(--text3); border: 1px solid var(--border); }
+
+/* ── Batch Control Cards (admin dashboard) ── */
+.batch-control-card {
+  background: var(--bg1); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 18px;
+  transition: border-color 0.15s;
+}
+.batch-control-card.batch-live { border-color: rgba(63,185,80,0.35); background: rgba(63,185,80,0.04); }
+.batch-control-header { display: flex; align-items: flex-start; justify-content: space-between; }
+.batch-control-title  { font-size: 15px; font-weight: 600; }
+.batch-control-meta   { font-size: 12.5px; color: var(--text3); margin-top: 2px; }
+
+/* ── Editor enhancements ── */
+.editor-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; border-bottom: 1px solid var(--border);
+  background: var(--bg2); flex-shrink: 0; gap: 8px;
+}
+.editor-sep { width: 1px; height: 16px; background: var(--border); margin: 0 2px; flex-shrink: 0; }
+.editor-tool-btn {
+  background: none; border: 1px solid var(--border); border-radius: var(--radius);
+  color: var(--text2); cursor: pointer; font-size: 11.5px; font-weight: 600;
+  padding: 2px 8px; line-height: 1.5; transition: all 0.12s; white-space: nowrap;
+}
+.editor-tool-btn:hover { background: var(--bg3); color: var(--text); border-color: var(--border2); }
+.editor-tool-btn.active { background: var(--blue-glow); color: var(--blue); border-color: var(--blue); }
+.editor-pos {
+  font-family: 'SFMono-Regular', monospace; font-size: 11px; color: var(--text3); white-space: nowrap;
+}
+.kbd-hint {
+  font-size: 10.5px; font-family: 'SFMono-Regular', monospace; opacity: 0.5;
+  border: 1px solid currentColor; border-radius: 3px; padding: 0 3px; margin-left: 4px;
+}
+
+/* Override editor-topbar to use new styles (replaces old definition above) */
+.editor-container { flex: 1; min-height: 0; overflow: hidden; border-bottom: 1px solid var(--border); }
+.CodeMirror { font-size: 13.5px !important; font-family: 'SFMono-Regular','Consolas','Courier New',monospace !important; height: 100% !important; }
+
+/* ── Fullscreen editor ── */
+.split-right.editor-fullscreen {
+  position: fixed; inset: 52px 0 0 0;
+  z-index: 300; height: calc(100vh - 52px);
+}
+
+/* ── Read-only notice ── */
+.readonly-notice {
+  flex-shrink: 0; padding: 8px 14px;
+  background: var(--yellow-dim); border-bottom: 1px solid rgba(210,153,34,0.3);
+  font-size: 12.5px; color: #e3b341; font-weight: 500;
+}

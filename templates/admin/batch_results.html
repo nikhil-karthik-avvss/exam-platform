@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Batch 1' if batch=='batch1' else 'Batch 2' }} Results{% endblock %}
+{% block content %}
+<div class="content-wide">
+  <a href="/admin" class="back-link">Back to Dashboard</a>
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">
+        <span class="batch-tag {% if batch=='batch1' %}b1{% else %}b2{% endif %}" style="font-size:14px;margin-right:8px;">
+          {{ 'Batch 1' if batch=='batch1' else 'Batch 2' }}
+        </span>
+        Results
+      </h1>
+      <p class="page-sub">{{ students|length }} students &middot; {{ problems|length }} problems</p>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <a href="/admin/batch/{{ 'batch2' if batch=='batch1' else 'batch1' }}/results" class="btn-ghost">
+        {{ 'View Batch 2' if batch=='batch1' else 'View Batch 1' }}
+      </a>
+      <a href="/admin/export_csv?batch={{ batch }}" class="btn-ghost">Export CSV</a>
+    </div>
+  </div>
+
+  {% if students and problems %}
+  <div class="card" style="overflow-x:auto;">
+    <table class="data-table" style="min-width:600px;">
+      <thead>
+        <tr>
+          <th>Roll Number</th>
+          <th>Name</th>
+          {% for p in problems %}
+          <th style="white-space:nowrap;">{{ p['title'][:20] }}{% if p['title']|length > 20 %}…{% endif %}</th>
+          {% endfor %}
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in students %}
+        {% set row = results[s['id']] %}
+        <tr>
+          <td><strong>{{ s['roll_number'] }}</strong></td>
+          <td>{{ s['name'] }}</td>
+          {% set total_score = namespace(val=0) %}
+          {% for p in problems %}
+          {% set sub = row.get(p['id']) %}
+          <td>
+            {% if sub %}
+              {% if sub['status'] == 'Accepted' %}
+                <span class="pill pill-green">AC</span>
+              {% else %}
+                <span class="pill pill-yellow">{{ sub['score'] }}%</span>
+              {% endif %}
+              {% if sub['time_complexity'] %}
+              <div class="mono-sm dim" style="margin-top:2px;">{{ sub['time_complexity'] }}</div>
+              {% endif %}
+              {% set total_score.val = total_score.val + sub['score'] %}
+            {% else %}
+              <span class="dim">—</span>
+            {% endif %}
+          </td>
+          {% endfor %}
+          <td>
+            <strong>{{ "%.0f"|format(total_score.val / problems|length if problems else 0) }}%</strong>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:12px;font-size:12.5px;color:var(--text3);">
+    AC = Accepted (100%). Partial shows score%. Time complexity shown below score.
+  </div>
+
+  {% elif not problems %}
+  <div class="empty-box">
+    <div class="empty-title">No problems assigned to this batch</div>
+    <div class="empty-sub">Create problems and assign them to this batch.</div>
+  </div>
+  {% else %}
+  <div class="empty-box">
+    <div class="empty-title">No students in this batch</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

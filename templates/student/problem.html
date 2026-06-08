@@ -11,6 +11,9 @@
       <div class="prob-meta">
         <span class="meta-tag">Time: {{ problem['time_limit'] }}s</span>
         <span class="meta-tag">Memory: {{ problem['memory_limit'] }} MB</span>
+        {% if read_only %}
+        <span class="meta-tag" style="color:var(--yellow);border-color:rgba(210,153,34,0.3);background:var(--yellow-dim);">View Only</span>
+        {% endif %}
       </div>
     </div>
 
@@ -48,11 +51,11 @@
         <div class="sample-tc">
           {% if tc['label'] %}<div class="tc-label-text">{{ tc['label'] }}</div>{% endif %}
           <div class="tc-columns">
-            <div class="tc-col">
+            <div>
               <div class="tc-col-head">Input</div>
               <pre class="tc-pre">{{ tc['input'] }}</pre>
             </div>
-            <div class="tc-col">
+            <div>
               <div class="tc-col-head">Output</div>
               <pre class="tc-pre">{{ tc['expected_output'] }}</pre>
             </div>
@@ -97,20 +100,38 @@
   <!-- RIGHT PANE: Editor -->
   <div class="split-right" id="editor-pane">
 
+    {% if read_only %}
+    <div class="readonly-notice">
+      Exam ended &mdash; view only. Run and submit are disabled.
+    </div>
+    {% endif %}
+
+    <!-- Editor Toolbar -->
     <div class="editor-topbar">
-      <select id="language" class="lang-select">
-        <option value="python">Python 3</option>
-        <option value="java">Java</option>
-      </select>
-      <button class="btn-ghost" onclick="clearEditor()">Clear</button>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <select id="language" class="lang-select" {% if read_only %}disabled{% endif %}>
+          <option value="python">Python 3</option>
+          <option value="java">Java</option>
+        </select>
+        {% if not read_only %}
+        <button class="editor-tool-btn" onclick="clearEditor()" title="Clear editor">Clear</button>
+        <span class="editor-sep"></span>
+        <button class="editor-tool-btn" onclick="changeFontSize(-1)" title="Decrease font size">A&minus;</button>
+        <button class="editor-tool-btn" onclick="changeFontSize(1)"  title="Increase font size">A+</button>
+        <button class="editor-tool-btn" id="fs-btn" onclick="toggleFullscreen()" title="Toggle fullscreen (F11)">[ ]</button>
+        {% endif %}
+      </div>
+      <span class="editor-pos" id="editor-pos">Ln 1, Col 1</span>
     </div>
 
-    <div class="editor-container">
+    <!-- Code Editor -->
+    <div class="editor-container" id="editor-container">
       <textarea id="code-editor"></textarea>
     </div>
 
     <!-- Test Case Panel -->
-    <div class="tc-panel">
+    <div class="tc-panel" {% if read_only %}style="flex:1;"{% endif %}>
+      {% if not read_only %}
       <div class="tc-panel-top">
         <span class="tc-panel-label">Test Cases</span>
         <button class="btn-ghost sm" onclick="openCustomModal()">Add Custom</button>
@@ -118,41 +139,43 @@
 
       <div class="tc-tabs" id="tc-tabs">
         {% for tc in pub_tcs %}
-        <button class="tc-tab" data-idx="{{ loop.index0 }}" onclick="selectTC({{ loop.index0 }})">
+        <button class="tc-tab" data-idx="{{ loop.index0 }}" onclick="selectTC({{ loop.index0 }}, this)">
           Sample {{ loop.index }}
         </button>
         {% endfor %}
         {% for tc in cust_tcs %}
         <button class="tc-tab custom-tc-tab" data-idx="{{ loop.index0 + pub_tcs|length }}"
-                onclick="selectTC({{ loop.index0 + pub_tcs|length }})">
+                onclick="selectTC({{ loop.index0 + pub_tcs|length }}, this)">
           {{ tc['label'] or 'Custom ' ~ loop.index }}
-          <span class="tc-del" onclick="deleteCustomTC(event,{{ tc['id'] }})">x</span>
+          <span class="tc-del" onclick="deleteCustomTC(event,{{ tc['id'] }})" title="Delete">&#10005;</span>
         </button>
         {% endfor %}
-        <button class="tc-tab" onclick="selectTC(-1)">Custom Input</button>
+        <button class="tc-tab" onclick="selectTC(-1, this)">Custom Input</button>
       </div>
 
       <div class="tc-io">
         <div class="io-row">
-          <div class="io-col">
+          <div>
             <label class="io-label">Input</label>
             <textarea id="tc-input" class="io-area" rows="4"></textarea>
           </div>
-          <div class="io-col">
+          <div>
             <label class="io-label">Expected Output <span class="dim">(optional)</span></label>
             <textarea id="tc-expected" class="io-area" rows="4"></textarea>
           </div>
         </div>
       </div>
 
-      <div class="tc-actions">
-        <button class="btn-secondary full" onclick="runCode()">Run</button>
+      <div class="tc-actions" style="display:flex;gap:8px;">
+        <button class="btn-secondary" style="flex:1;" id="run-btn" onclick="runCode()">
+          Run &nbsp;<span class="kbd-hint">Ctrl+Enter</span>
+        </button>
       </div>
 
       <div id="run-result" class="run-result hidden">
         <div id="run-status"></div>
         <div class="run-output-row">
-          <div class="io-col">
+          <div>
             <label class="io-label">Output</label>
             <pre id="run-stdout" class="output-pre"></pre>
           </div>
@@ -163,16 +186,23 @@
         </div>
         <div id="run-time" class="run-meta"></div>
       </div>
+      {% else %}
+      <div style="padding:12px 0;">
+        <p class="dim sm">Exam has ended. You can browse the problem statement and your past submissions.</p>
+      </div>
+      {% endif %}
     </div>
 
+    {% if not read_only %}
     <div class="submit-bar">
-      <button class="btn-primary full" id="submit-btn" onclick="submitSolution()">Submit Solution</button>
+      <button class="btn-primary full" id="submit-btn" onclick="submitSolution()">
+        Submit Solution &nbsp;<span class="kbd-hint" style="opacity:0.6;">Ctrl+Shift+Enter</span>
+      </button>
     </div>
 
     <!-- Submit Result -->
     <div id="submit-result" class="submit-result hidden">
       <div id="submit-header"></div>
-
       <div class="complexity-card">
         <div class="complexity-card-title">Complexity Analysis</div>
         <div class="complexity-row">
@@ -187,18 +217,19 @@
         </div>
         <div class="complexity-notes" id="c-notes"></div>
       </div>
-
       <div class="tc-result-list" id="tc-result-list"></div>
     </div>
+    {% endif %}
   </div>
 </div>
 
 <!-- Custom TC Modal -->
+{% if not read_only %}
 <div id="custom-modal" class="modal-overlay hidden">
   <div class="modal-box">
     <div class="modal-header">
       <h3>Add Custom Test Case</h3>
-      <button class="modal-close" onclick="closeCustomModal()">x</button>
+      <button class="modal-close" onclick="closeCustomModal()">&#10005;</button>
     </div>
     <div class="field">
       <label>Label <span class="dim">(optional)</span></label>
@@ -218,145 +249,313 @@
     </div>
   </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
 <script>
-const PROBLEM_ID = {{ problem['id'] }};
-const PUB_TCS    = {{ pub_tcs | tojson }};
-const CUST_TCS   = {{ cust_tcs | tojson }};
-const ALL_TCS    = [...PUB_TCS, ...CUST_TCS];
+const PROBLEM_ID  = {{ problem['id'] }};
+const PUB_TCS     = {{ pub_tcs | tojson }};
+const CUST_TCS    = {{ cust_tcs | tojson }};
+const ALL_TCS     = [...PUB_TCS, ...CUST_TCS];
+const READ_ONLY   = {{ 'true' if read_only else 'false' }};
+const PY_TEMPLATE = {{ (problem['python_template'] or '') | tojson }};
+const JAVA_TEMPLATE = {{ (problem['java_template'] or 'public class Main {\n    public static void main(String[] args) {\n        \n    }\n}') | tojson }};
+const LAST_CODE   = {{ ((last_sub['code'] if last_sub else '') | tojson) }};
+const LAST_LANG   = {{ ((last_sub['language'] if last_sub else 'python') | tojson) }};
 
-// Init CodeMirror
+// ── CodeMirror ────────────────────────────────────────────────────────────────
+const initLang = READ_ONLY ? LAST_LANG : "python";
 const editor = CodeMirror.fromTextArea(document.getElementById("code-editor"), {
-  mode: "python", theme: "dracula", lineNumbers: true,
-  indentUnit: 4, tabSize: 4, indentWithTabs: false, autofocus: true
-});
-editor.setSize("100%", "100%");
-editor.setValue("# Write your solution here\n\n");
-
-document.getElementById("language").addEventListener("change", function(){
-  const lang = this.value;
-  editor.setOption("mode", lang === "java" ? "text/x-java" : "python");
-  const val = editor.getValue().trim();
-  if (lang === "java" && (val === "" || val.startsWith("#"))) {
-    editor.setValue("public class Main {\n    public static void main(String[] args) {\n        // Write your solution here\n    }\n}");
-  } else if (lang === "python" && (val === "" || val.startsWith("public class"))) {
-    editor.setValue("# Write your solution here\n\n");
+  mode:           initLang === "java" ? "text/x-java" : "python",
+  theme:          "dracula",
+  lineNumbers:    true,
+  indentUnit:     4,
+  tabSize:        4,
+  indentWithTabs: false,
+  autofocus:      !READ_ONLY,
+  readOnly:       READ_ONLY ? "nocursor" : false,
+  extraKeys: READ_ONLY ? {} : {
+    "Ctrl-Enter":       () => runCode(),
+    "Ctrl-Shift-Enter": () => submitSolution(),
+    "Ctrl-/":           (cm) => toggleComment(cm),
+    "Tab": (cm) => {
+      if (cm.somethingSelected()) cm.indentSelection("add");
+      else cm.replaceSelection("    ", "end");
+    },
+    "Shift-Tab": (cm) => cm.indentSelection("subtract"),
   }
 });
+editor.setSize("100%", "100%");
+
+// Load initial code
+if (READ_ONLY) {
+  editor.setValue(LAST_CODE || "");
+  if (LAST_LANG === "java") editor.setOption("mode", "text/x-java");
+} else {
+  editor.setValue(PY_TEMPLATE || "");
+}
+
+// ── Line / Col display ────────────────────────────────────────────────────────
+editor.on("cursorActivity", () => {
+  const c = editor.getCursor();
+  document.getElementById("editor-pos").textContent = `Ln ${c.line+1}, Col ${c.ch+1}`;
+});
+
+// ── Auto-close brackets & quotes ─────────────────────────────────────────────
+if (!READ_ONLY) {
+  const PAIRS = { "(":")", "[":"]", "{":"}" };
+  const CLOSE = new Set([")", "]", "}"]);
+  const QUOTE = new Set(['"', "'"]);
+
+  editor.on("keypress", (cm, evt) => {
+    const ch = evt.key;
+    if (ch.length !== 1) return;
+    const cur  = cm.getCursor();
+    const next = cm.getRange(cur, { line: cur.line, ch: cur.ch + 1 });
+
+    if (PAIRS[ch]) {
+      evt.preventDefault();
+      const sel = cm.getSelection();
+      if (sel) cm.replaceSelection(ch + sel + PAIRS[ch], "end");
+      else { cm.replaceRange(ch + PAIRS[ch], cur); cm.setCursor({ line: cur.line, ch: cur.ch + 1 }); }
+    } else if (CLOSE.has(ch) && next === ch) {
+      evt.preventDefault();
+      cm.setCursor({ line: cur.line, ch: cur.ch + 1 });
+    } else if (QUOTE.has(ch)) {
+      evt.preventDefault();
+      const sel = cm.getSelection();
+      if (sel) cm.replaceSelection(ch + sel + ch, "end");
+      else if (next === ch) cm.setCursor({ line: cur.line, ch: cur.ch + 1 });
+      else { cm.replaceRange(ch + ch, cur); cm.setCursor({ line: cur.line, ch: cur.ch + 1 }); }
+    }
+  });
+
+  editor.on("keydown", (cm, evt) => {
+    if (evt.key !== "Backspace" || cm.somethingSelected()) return;
+    const cur  = cm.getCursor();
+    const prev = cm.getRange({ line: cur.line, ch: cur.ch - 1 }, cur);
+    const next = cm.getRange(cur, { line: cur.line, ch: cur.ch + 1 });
+    const p    = { "(":")", "[":"]", "{":"}", '"':'"', "'":"'" };
+    if (p[prev] && p[prev] === next) {
+      evt.preventDefault();
+      cm.replaceRange("", { line: cur.line, ch: cur.ch - 1 }, { line: cur.line, ch: cur.ch + 1 });
+    }
+  });
+}
+
+// ── Comment toggle (Ctrl+/) ───────────────────────────────────────────────────
+function toggleComment(cm) {
+  const lang   = document.getElementById("language").value;
+  const prefix = lang === "java" ? "//" : "#";
+  const from   = cm.getCursor("from"), to = cm.getCursor("to");
+  let allCommented = true;
+  for (let i = from.line; i <= to.line; i++) {
+    const t = cm.getLine(i).trimStart();
+    if (t && !t.startsWith(prefix)) { allCommented = false; break; }
+  }
+  cm.operation(() => {
+    for (let i = from.line; i <= to.line; i++) {
+      const text   = cm.getLine(i);
+      const indent = text.match(/^\s*/)[0].length;
+      if (allCommented) {
+        const idx = text.indexOf(prefix, indent);
+        if (idx !== -1) {
+          const extra = text[idx + prefix.length] === " " ? 1 : 0;
+          cm.replaceRange("", { line: i, ch: idx }, { line: i, ch: idx + prefix.length + extra });
+        }
+      } else {
+        cm.replaceRange(prefix + " ", { line: i, ch: indent });
+      }
+    }
+  });
+}
+
+// ── Language switch ───────────────────────────────────────────────────────────
+if (!READ_ONLY) {
+  document.getElementById("language").addEventListener("change", function() {
+    const lang = this.value;
+    editor.setOption("mode", lang === "java" ? "text/x-java" : "python");
+    const cur = editor.getValue().trim();
+    if (lang === "java" && (!cur || cur === (PY_TEMPLATE || "").trim())) {
+      editor.setValue(JAVA_TEMPLATE);
+    } else if (lang === "python" && (!cur || cur === JAVA_TEMPLATE.trim())) {
+      editor.setValue(PY_TEMPLATE || "");
+    }
+  });
+}
 
 function clearEditor() {
   const lang = document.getElementById("language").value;
-  editor.setValue(lang === "java"
-    ? "public class Main {\n    public static void main(String[] args) {\n        \n    }\n}"
-    : "# Write your solution here\n\n");
+  editor.setValue(lang === "java" ? JAVA_TEMPLATE : (PY_TEMPLATE || ""));
 }
 
-function selectTC(idx) {
+// ── Font size ─────────────────────────────────────────────────────────────────
+let fontSize = 13.5;
+function changeFontSize(delta) {
+  fontSize = Math.max(10, Math.min(22, fontSize + delta));
+  document.querySelector(".CodeMirror").style.fontSize = fontSize + "px";
+  editor.refresh();
+}
+
+// ── Fullscreen ────────────────────────────────────────────────────────────────
+let isFullscreen = false;
+function toggleFullscreen() {
+  isFullscreen = !isFullscreen;
+  const pane = document.getElementById("editor-pane");
+  pane.classList.toggle("editor-fullscreen", isFullscreen);
+  document.getElementById("fs-btn").textContent = isFullscreen ? "[ X ]" : "[ ]";
+  editor.refresh();
+}
+document.addEventListener("keydown", e => {
+  if (e.key === "F11" && !READ_ONLY) { e.preventDefault(); toggleFullscreen(); }
+  if (e.key === "Escape" && isFullscreen) toggleFullscreen();
+});
+
+// ── TC Selection ──────────────────────────────────────────────────────────────
+let selectedIdx = -1;
+function selectTC(idx, btn) {
+  selectedIdx = idx;
   document.querySelectorAll(".tc-tab").forEach(t => t.classList.remove("active"));
-  const tabs = document.querySelectorAll(".tc-tab");
-  // Map idx: -1 = last tab (custom input)
+  if (btn) btn.classList.add("active");
+
+  const inputEl    = document.getElementById("tc-input");
+  const expectedEl = document.getElementById("tc-expected");
+
   if (idx === -1) {
-    tabs[tabs.length - 1].classList.add("active");
-    document.getElementById("tc-input").value = "";
-    document.getElementById("tc-expected").value = "";
-    document.getElementById("tc-input").readOnly = false;
-    document.getElementById("tc-expected").readOnly = false;
+    inputEl.value    = "";
+    expectedEl.value = "";
+    inputEl.readOnly    = false;
+    expectedEl.readOnly = false;
   } else {
-    tabs[idx].classList.add("active");
-    document.getElementById("tc-input").value = ALL_TCS[idx].input;
-    document.getElementById("tc-expected").value = ALL_TCS[idx].expected_output || "";
-    document.getElementById("tc-input").readOnly = true;
-    document.getElementById("tc-expected").readOnly = true;
+    const tc = ALL_TCS[idx];
+    inputEl.value    = tc.input;
+    expectedEl.value = tc.expected_output || "";
+    inputEl.readOnly    = true;
+    expectedEl.readOnly = true;
   }
 }
-if (PUB_TCS.length > 0) selectTC(0); else selectTC(-1);
 
+// Initialize first TC
+if (!READ_ONLY) {
+  const tabs = document.querySelectorAll(".tc-tab");
+  if (PUB_TCS.length > 0) selectTC(0, tabs[0]);
+  else selectTC(-1, tabs[tabs.length - 1]);
+}
+
+// ── Run ───────────────────────────────────────────────────────────────────────
 async function runCode() {
+  if (READ_ONLY) return;
   const code = editor.getValue();
   const lang = document.getElementById("language").value;
   const inp  = document.getElementById("tc-input").value;
   const exp  = document.getElementById("tc-expected").value;
+
   const res  = document.getElementById("run-result");
+  const btn  = document.getElementById("run-btn");
   res.classList.remove("hidden");
+  btn.disabled = true;
+  btn.textContent = "Running...";
   document.getElementById("run-status").innerHTML = '<span class="status-running">Running...</span>';
   document.getElementById("run-stdout").textContent = "";
   document.getElementById("run-stderr").textContent = "";
   document.getElementById("run-time").textContent = "";
   document.getElementById("run-err-wrap").classList.add("hidden");
 
-  const r = await fetch("/student/run", {
-    method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({code, language: lang, input: inp, expected: exp})
-  }).then(r=>r.json());
+  try {
+    const r = await fetch("/student/run", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({code, language: lang, input: inp, expected: exp})
+    }).then(r => r.json());
 
-  let statusHtml = "";
-  if (r.error === "tle") statusHtml = '<span class="status-tle">Time Limit Exceeded</span>';
-  else if (r.stderr && !r.stdout) statusHtml = '<span class="status-err">Runtime Error</span>';
-  else if (exp && r.stdout !== null)
-    statusHtml = r.passed
-      ? '<span class="status-pass">Correct</span>'
-      : '<span class="status-fail">Wrong Answer</span>';
-  else statusHtml = '<span class="status-done">Output</span>';
-  document.getElementById("run-status").innerHTML = statusHtml;
-  document.getElementById("run-stdout").textContent = r.stdout ?? "(no output)";
-  if (r.stderr) {
-    document.getElementById("run-err-wrap").classList.remove("hidden");
-    document.getElementById("run-stderr").textContent = r.stderr;
+    let statusHtml = "";
+    if (r.error === "tle")          statusHtml = '<span class="status-tle">Time Limit Exceeded</span>';
+    else if (r.stderr && !r.stdout) statusHtml = '<span class="status-err">Runtime Error</span>';
+    else if (exp.trim() && r.stdout !== null)
+      statusHtml = r.passed
+        ? '<span class="status-pass">Correct</span>'
+        : '<span class="status-fail">Wrong Answer</span>';
+    else statusHtml = '<span class="status-done">Done</span>';
+
+    document.getElementById("run-status").innerHTML = statusHtml;
+    document.getElementById("run-stdout").textContent = r.stdout ?? "(no output)";
+    if (r.stderr) {
+      document.getElementById("run-err-wrap").classList.remove("hidden");
+      document.getElementById("run-stderr").textContent = r.stderr;
+    }
+    if (r.exec_time) document.getElementById("run-time").textContent = `${r.exec_time}s`;
+  } catch(e) {
+    document.getElementById("run-status").innerHTML = '<span class="status-err">Network error</span>';
   }
-  if (r.exec_time) document.getElementById("run-time").textContent = `Execution time: ${r.exec_time}s`;
+  btn.disabled = false;
+  btn.innerHTML = 'Run &nbsp;<span class="kbd-hint">Ctrl+Enter</span>';
 }
 
+// ── Submit ────────────────────────────────────────────────────────────────────
 async function submitSolution() {
+  if (READ_ONLY) return;
   const code = editor.getValue().trim();
   if (!code) { alert("Please write your solution before submitting."); return; }
   const lang = document.getElementById("language").value;
   const btn  = document.getElementById("submit-btn");
   btn.disabled = true; btn.textContent = "Judging...";
 
-  const r = await fetch("/student/submit", {
-    method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({code, language: lang, problem_id: PROBLEM_ID})
-  }).then(r=>r.json());
+  try {
+    const r = await fetch("/student/submit", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({code, language: lang, problem_id: PROBLEM_ID})
+    }).then(r => r.json());
 
-  btn.disabled = false; btn.textContent = "Submit Solution";
-  const accepted = r.status === "Accepted";
-  const wrap = document.getElementById("submit-result");
-  wrap.classList.remove("hidden");
+    if (r.error) { alert(r.error); return; }
 
-  document.getElementById("submit-header").innerHTML = `
-    <div class="submit-verdict ${accepted ? 'verdict-accepted' : 'verdict-partial'}">
-      <span class="verdict-text">${r.status}</span>
-      <span class="verdict-score">${r.score}% (${r.passed}/${r.total} test cases)</span>
-    </div>`;
-  document.getElementById("c-time").textContent  = r.time_complexity  || "—";
-  document.getElementById("c-space").textContent = r.space_complexity || "—";
-  document.getElementById("c-notes").textContent = r.complexity_notes || "";
+    const accepted = r.status === "Accepted";
+    const wrap = document.getElementById("submit-result");
+    wrap.classList.remove("hidden");
 
-  let html = "";
-  r.public_results.forEach((t, i) => {
-    html += `<div class="tc-result-item ${t.passed?'tc-pass':'tc-fail'}">
-      <span class="tc-res-label">${t.passed?'Pass':'Fail'}</span>
-      <span>Sample ${i+1}</span>
-      ${t.exec_time ? `<span class="tc-time">${t.exec_time}s</span>` : ""}
-    </div>`;
-  });
-  if (r.private_results.length) {
-    html += `<div class="tc-section-label">Hidden Test Cases</div>`;
-    r.private_results.forEach((t, i) => {
+    document.getElementById("submit-header").innerHTML = `
+      <div class="submit-verdict ${accepted ? 'verdict-accepted' : 'verdict-partial'}">
+        <span class="verdict-text">${r.status}</span>
+        <span class="verdict-score">${r.score}% &nbsp;&middot;&nbsp; ${r.passed}/${r.total} test cases</span>
+      </div>`;
+    document.getElementById("c-time").textContent  = r.time_complexity  || "—";
+    document.getElementById("c-space").textContent = r.space_complexity || "—";
+    document.getElementById("c-notes").textContent = r.complexity_notes || "";
+
+    let html = "";
+    (r.public_results || []).forEach((t, i) => {
       html += `<div class="tc-result-item ${t.passed?'tc-pass':'tc-fail'}">
         <span class="tc-res-label">${t.passed?'Pass':'Fail'}</span>
-        <span>Hidden TC ${i+1}</span>
+        <span>Sample ${i+1}</span>
+        ${t.exec_time ? `<span class="tc-time">${t.exec_time}s</span>` : ""}
       </div>`;
     });
+    if ((r.private_results || []).length) {
+      const priv     = r.private_results;
+      const privPass = priv.filter(t => t.passed).length;
+      html += `<div class="tc-section-label">Hidden Test Cases &mdash; ${privPass}/${priv.length} passed</div>`;
+      priv.forEach((t, i) => {
+        html += `<div class="tc-result-item ${t.passed?'tc-pass':'tc-fail'}">
+          <span class="tc-res-label">${t.passed?'Pass':'Fail'}</span>
+          <span>Hidden TC ${i+1}</span>
+        </div>`;
+      });
+    }
+    html += `<div style="margin-top:8px;"><a href="/student/submission/${r.submission_id}" class="tbl-link">View full submission</a></div>`;
+    document.getElementById("tc-result-list").innerHTML = html;
+    wrap.scrollIntoView({behavior:"smooth"});
+  } catch(e) {
+    alert("Submission failed. Please try again.");
   }
-  document.getElementById("tc-result-list").innerHTML = html;
-  wrap.scrollIntoView({behavior:"smooth"});
+  btn.disabled = false;
+  btn.innerHTML = 'Submit Solution &nbsp;<span class="kbd-hint" style="opacity:0.6;">Ctrl+Shift+Enter</span>';
 }
 
-function openCustomModal() { document.getElementById("custom-modal").classList.remove("hidden"); }
+// ── Custom TC Modal ───────────────────────────────────────────────────────────
+function openCustomModal()  { document.getElementById("custom-modal").classList.remove("hidden"); }
 function closeCustomModal() { document.getElementById("custom-modal").classList.add("hidden"); }
+document.getElementById("custom-modal")?.addEventListener("click", e => {
+  if (e.target.id === "custom-modal") closeCustomModal();
+});
 
 async function saveCustomTC() {
   const label = document.getElementById("m-label").value.trim();
@@ -364,9 +563,9 @@ async function saveCustomTC() {
   const exp   = document.getElementById("m-expected").value.trim();
   if (!inp) { alert("Input is required."); return; }
   const r = await fetch("/student/add_custom_tc", {
-    method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({problem_id:PROBLEM_ID, input:inp, expected_output:exp, label:label||"Custom"})
-  }).then(r=>r.json());
+    method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({problem_id: PROBLEM_ID, input: inp, expected_output: exp, label: label || "Custom"})
+  }).then(r => r.json());
   if (r.success) { closeCustomModal(); location.reload(); }
 }
 

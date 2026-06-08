@@ -3,61 +3,115 @@
 {% block content %}
 <div class="page-header">
   <div>
-    <h1 class="page-title">Problem Set</h1>
-    <p class="page-sub">{{ settings['exam_name'] }}</p>
+    <h1 class="page-title">{{ 'My Submissions' if not exam_active else 'Problem Set' }}</h1>
+    <p class="page-sub">
+      {{ settings['exam_name'] }}
+      {% if student_batch %}
+        &nbsp;&middot;&nbsp;
+        <span class="batch-tag {% if student_batch=='batch1' %}b1{% else %}b2{% endif %}">
+          {{ 'Batch 1' if student_batch=='batch1' else 'Batch 2' }}
+        </span>
+      {% endif %}
+    </p>
   </div>
-  <div class="exam-badge {% if settings['exam_active'] %}badge-live{% else %}badge-waiting{% endif %}">
-    {% if settings['exam_active'] %}Exam Live{% else %}Waiting to Start{% endif %}
-  </div>
+  <span class="exam-badge {% if exam_active %}badge-live{% else %}badge-waiting{% endif %}">
+    {% if exam_active %}Exam Live{% else %}Waiting{% endif %}
+  </span>
 </div>
 
-{% if not settings['exam_active'] %}
-<div class="notice notice-warn">
-  The exam has not started yet. Please wait for the professor to begin.
-</div>
-{% endif %}
+{% if exam_active %}
+  {# ── Active exam: show problem list ── #}
+  {% if problems %}
+  <div class="problem-table-wrap">
+    <table class="problem-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Problem</th>
+          <th>Time Limit</th>
+          <th>Memory</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in problems %}
+        {% set st = statuses.get(p['id']) %}
+        <tr class="problem-row {% if st == 'Accepted' %}row-accepted{% elif st %}row-attempted{% endif %}"
+            onclick="window.location='/student/problem/{{ p['id'] }}'">
+          <td class="col-num">{{ loop.index }}</td>
+          <td class="col-title">
+            <a href="/student/problem/{{ p['id'] }}" class="problem-link">{{ p['title'] }}</a>
+          </td>
+          <td class="col-meta">{{ p['time_limit'] }}s</td>
+          <td class="col-meta">{{ p['memory_limit'] }} MB</td>
+          <td class="col-status">
+            {% if st == 'Accepted' %}
+              <span class="pill pill-green">Accepted</span>
+            {% elif st %}
+              <span class="pill pill-yellow">{{ st }}</span>
+            {% else %}
+              <span class="pill pill-gray">Not Attempted</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-box">
+    <div class="empty-title">No problems available yet</div>
+    <div class="empty-sub">Your professor will add problems shortly.</div>
+  </div>
+  {% endif %}
 
-{% if problems %}
-<div class="problem-table-wrap">
-  <table class="problem-table">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Problem</th>
-        <th>Time Limit</th>
-        <th>Memory</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for p in problems %}
-      {% set st = statuses.get(p['id']) %}
-      <tr class="problem-row {% if st == 'Accepted' %}row-accepted{% elif st %}row-attempted{% endif %}"
-          onclick="window.location='/student/problem/{{ p['id'] }}'">
-        <td class="col-num">{{ loop.index }}</td>
-        <td class="col-title">
-          <a href="/student/problem/{{ p['id'] }}" class="problem-link">{{ p['title'] }}</a>
-        </td>
-        <td class="col-meta">{{ p['time_limit'] }}s</td>
-        <td class="col-meta">{{ p['memory_limit'] }} MB</td>
-        <td class="col-status">
-          {% if st == 'Accepted' %}
-            <span class="pill pill-green">Accepted</span>
-          {% elif st %}
-            <span class="pill pill-yellow">{{ st }}</span>
-          {% else %}
-            <span class="pill pill-gray">Not Attempted</span>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
 {% else %}
-<div class="empty-box">
-  <div class="empty-title">No problems available</div>
-  <div class="empty-sub">Your professor will add problems shortly.</div>
-</div>
+  {# ── Exam not active: show submissions only ── #}
+  <div class="notice notice-warn" style="margin-bottom:16px;">
+    The exam is not currently active. Problem access is disabled.
+  </div>
+
+  {% if my_submissions %}
+  <div class="problem-table-wrap">
+    <table class="problem-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Problem</th>
+          <th>Status</th>
+          <th>Score</th>
+          <th>Time Complexity</th>
+          <th>Submitted At</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sub in my_submissions %}
+        <tr class="problem-row"
+            onclick="window.location='/student/submission/{{ sub['id'] }}'">
+          <td class="col-num">{{ loop.index }}</td>
+          <td class="col-title">
+            <a href="/student/submission/{{ sub['id'] }}" class="problem-link">{{ sub['title'] }}</a>
+          </td>
+          <td class="col-status">
+            {% if sub['status'] == 'Accepted' %}
+              <span class="pill pill-green">Accepted</span>
+            {% else %}
+              <span class="pill pill-yellow">{{ sub['status'] }}</span>
+            {% endif %}
+          </td>
+          <td class="col-meta">{{ sub['score'] }}%</td>
+          <td class="col-meta mono-sm">{{ sub['time_complexity'] or '—' }}</td>
+          <td class="col-meta dim sm">{{ sub['submitted_at'][:16] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-box">
+    <div class="empty-title">No submissions yet</div>
+    <div class="empty-sub">You haven't submitted any solutions.</div>
+  </div>
+  {% endif %}
 {% endif %}
 {% endblock %}

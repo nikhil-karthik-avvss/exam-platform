@@ -6,29 +6,78 @@
     <h1 class="page-title">Dashboard</h1>
     <p class="page-sub">{{ settings['exam_name'] }}</p>
   </div>
-  <form method="POST" action="/admin/toggle_exam">
-    <button type="submit" class="btn-primary {% if settings['exam_active'] %}btn-danger-style{% endif %}">
-      {{ 'Stop Exam' if settings['exam_active'] else 'Start Exam' }}
-    </button>
-  </form>
+  <a href="/admin/problem/new" class="btn-primary">New Problem</a>
 </div>
 
-<div class="stat-row">
+<!-- Batch Exam Controls -->
+<div class="two-col-sm" style="margin-bottom:20px;">
+  <div class="batch-control-card {% if settings['batch1_active'] %}batch-live{% endif %}">
+    <div class="batch-control-header">
+      <div>
+        <div class="batch-control-title">Batch 1</div>
+        <div class="batch-control-meta">{{ b1_count }} students</div>
+      </div>
+      <span class="exam-badge {% if settings['batch1_active'] %}badge-live{% else %}badge-waiting{% endif %}">
+        {% if settings['batch1_active'] %}Live{% else %}Stopped{% endif %}
+      </span>
+    </div>
+    <form method="POST" action="/admin/toggle_exam/batch1" style="margin-top:12px;">
+      <button type="submit" class="btn-primary full {% if settings['batch1_active'] %}btn-danger-style{% endif %}">
+        {% if settings['batch1_active'] %}Stop Batch 1{% else %}Start Batch 1{% endif %}
+      </button>
+    </form>
+    <div style="display:flex;gap:6px;margin-top:8px;">
+      <a href="/admin/batch/batch1/results" class="btn-ghost sm" style="flex:1;justify-content:center;">Results</a>
+      <a href="/admin/submissions?batch=batch1" class="btn-ghost sm" style="flex:1;justify-content:center;">Submissions</a>
+      <a href="/admin/export_csv?batch=batch1" class="btn-ghost sm" style="flex:1;justify-content:center;">CSV</a>
+    </div>
+  </div>
+
+  <div class="batch-control-card {% if settings['batch2_active'] %}batch-live{% endif %}">
+    <div class="batch-control-header">
+      <div>
+        <div class="batch-control-title">Batch 2</div>
+        <div class="batch-control-meta">{{ b2_count }} students</div>
+      </div>
+      <span class="exam-badge {% if settings['batch2_active'] %}badge-live{% else %}badge-waiting{% endif %}">
+        {% if settings['batch2_active'] %}Live{% else %}Stopped{% endif %}
+      </span>
+    </div>
+    <form method="POST" action="/admin/toggle_exam/batch2" style="margin-top:12px;">
+      <button type="submit" class="btn-primary full {% if settings['batch2_active'] %}btn-danger-style{% endif %}">
+        {% if settings['batch2_active'] %}Stop Batch 2{% else %}Start Batch 2{% endif %}
+      </button>
+    </form>
+    <div style="display:flex;gap:6px;margin-top:8px;">
+      <a href="/admin/batch/batch2/results" class="btn-ghost sm" style="flex:1;justify-content:center;">Results</a>
+      <a href="/admin/submissions?batch=batch2" class="btn-ghost sm" style="flex:1;justify-content:center;">Submissions</a>
+      <a href="/admin/export_csv?batch=batch2" class="btn-ghost sm" style="flex:1;justify-content:center;">CSV</a>
+    </div>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stat-row" style="margin-bottom:20px;">
   <div class="stat-card">
     <div class="stat-num">{{ problems|length }}</div>
     <div class="stat-lbl">Problems</div>
   </div>
   <div class="stat-card">
-    <div class="stat-num">{{ students|length }}</div>
+    <div class="stat-num">{{ b1_count + b2_count }}</div>
     <div class="stat-lbl">Students</div>
   </div>
   <div class="stat-card">
     <div class="stat-num">{{ sub_count }}</div>
     <div class="stat-lbl">Submissions</div>
   </div>
-  <div class="stat-card {{ 'stat-live' if settings['exam_active'] else '' }}">
-    <div class="stat-num">{{ 'Live' if settings['exam_active'] else 'Off' }}</div>
-    <div class="stat-lbl">Exam Status</div>
+  <div class="stat-card {% if settings['batch1_active'] or settings['batch2_active'] %}stat-live{% endif %}">
+    <div class="stat-num">
+      {% if settings['batch1_active'] and settings['batch2_active'] %}Both
+      {% elif settings['batch1_active'] %}B1
+      {% elif settings['batch2_active'] %}B2
+      {% else %}Idle{% endif %}
+    </div>
+    <div class="stat-lbl">Exam State</div>
   </div>
 </div>
 
@@ -36,16 +85,22 @@
   <div class="card">
     <div class="card-header">
       <h3 class="card-title">Problems</h3>
-      <a href="/admin/problem/new" class="btn-primary sm">New Problem</a>
     </div>
     {% if problems %}
     <table class="data-table">
-      <thead><tr><th>#</th><th>Title</th><th>Visibility</th><th>Time</th><th>Actions</th></tr></thead>
+      <thead>
+        <tr><th>#</th><th>Title</th><th>Batch</th><th>Visibility</th><th>Time</th><th>Actions</th></tr>
+      </thead>
       <tbody>
         {% for p in problems %}
         <tr>
           <td class="dim">{{ loop.index }}</td>
           <td><strong>{{ p['title'] }}</strong></td>
+          <td>
+            {% if p['batch'] == 'batch1' %}<span class="batch-tag b1">Batch 1</span>
+            {% elif p['batch'] == 'batch2' %}<span class="batch-tag b2">Batch 2</span>
+            {% else %}<span class="batch-tag both">Both</span>{% endif %}
+          </td>
           <td><span class="pill {% if p['active'] %}pill-green{% else %}pill-gray{% endif %}">
             {{ 'Active' if p['active'] else 'Hidden' }}
           </span></td>
@@ -54,7 +109,7 @@
             <a href="/admin/problem/{{ p['id'] }}/edit" class="tbl-link">Edit</a>
             <a href="/admin/submissions?problem_id={{ p['id'] }}" class="tbl-link">Results</a>
             <form method="POST" action="/admin/problem/{{ p['id'] }}/delete" style="display:inline"
-                  onsubmit="return confirm('Delete problem &quot;{{ p['title'] }}&quot; and all its data?')">
+                  onsubmit="return confirm('Delete &quot;{{ p['title'] }}&quot; and all its data?')">
               <button type="submit" class="tbl-link tbl-link-danger">Delete</button>
             </form>
           </td>
@@ -71,24 +126,19 @@
 
   <div>
     <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">Quick Actions</h3>
-      </div>
+      <div class="card-header"><h3 class="card-title">Quick Actions</h3></div>
       <div class="action-list">
         <a href="/admin/students" class="action-item">Manage Students</a>
         <a href="/admin/submissions" class="action-item">View All Submissions</a>
         <a href="/admin/export_csv" class="action-item">Export Results (CSV)</a>
       </div>
     </div>
-
     <div class="card mt-3">
-      <div class="card-header">
-        <h3 class="card-title">Network Info</h3>
-      </div>
+      <div class="card-header"><h3 class="card-title">Network Info</h3></div>
       <div class="network-info">
-        <p class="dim sm">Students connect to this machine via LAN. Share the URL below:</p>
+        <p class="dim sm">Share this URL with students on the same LAN:</p>
         <div class="network-url" id="network-url">Loading...</div>
-        <p class="dim sm mt-1">Students open this URL in their browser. No internet required.</p>
+        <p class="dim sm mt-1">No internet required.</p>
       </div>
     </div>
   </div>
@@ -96,7 +146,6 @@
 {% endblock %}
 {% block scripts %}
 <script>
-// Display the server's URL for students
 fetch('/admin/server_info').then(r=>r.json()).then(d=>{
   document.getElementById('network-url').textContent = d.url || window.location.origin;
 }).catch(()=>{

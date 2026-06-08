@@ -5,6 +5,12 @@
   <a href="/admin" class="back-link">Back to Dashboard</a>
   <div class="page-header">
     <h1 class="page-title">Students <span class="count-badge lg">{{ students|length }}</span></h1>
+    <form method="POST" action="/admin/randomize_passwords"
+          onsubmit="return confirm('Generate new random 4-letter passwords for ALL students? Current passwords will be replaced.')">
+      <button type="submit" class="btn-primary" style="background:var(--orange,#e67e22);">
+        Randomize All Passwords
+      </button>
+    </form>
   </div>
 
   <div class="two-col top-align">
@@ -13,7 +19,7 @@
       <form method="POST">
         <div class="field">
           <label>Roll Number <span class="req">*</span></label>
-          <input type="text" name="roll_number" required placeholder="e.g. 3122237001063"/>
+          <input type="text" name="roll_number" required placeholder="e.g. 1001"/>
         </div>
         <div class="field">
           <label>Full Name <span class="req">*</span></label>
@@ -22,6 +28,14 @@
         <div class="field">
           <label>Password <span class="dim">(defaults to roll number)</span></label>
           <input type="text" name="password" placeholder="Leave blank to use roll number"/>
+        </div>
+        <div class="field">
+          <label>Batch <span class="dim">(auto-detected from roll number if blank)</span></label>
+          <select name="batch">
+            <option value="">Auto-detect</option>
+            <option value="batch1">Batch 1</option>
+            <option value="batch2">Batch 2</option>
+          </select>
         </div>
         <button type="submit" class="btn-primary">Add Student</button>
       </form>
@@ -32,19 +46,60 @@
       {% if students %}
       <div class="student-list">
         <table class="data-table">
-          <thead><tr><th>Roll Number</th><th>Name</th><th>Actions</th></tr></thead>
+          <thead>
+            <tr><th>Roll Number</th><th>Name</th><th>Batch</th><th>Actions</th></tr>
+          </thead>
           <tbody>
             {% for s in students %}
-            <tr>
+            <tr id="row-{{ s['id'] }}">
               <td><strong>{{ s['roll_number'] }}</strong></td>
-              <td>{{ s['name'] }}</td>
+              <td id="name-{{ s['id'] }}">{{ s['name'] }}</td>
+              <td>
+                {% if s['batch'] == 'batch1' %}<span class="batch-tag b1">B1</span>
+                {% elif s['batch'] == 'batch2' %}<span class="batch-tag b2">B2</span>
+                {% else %}<span class="dim sm">—</span>{% endif %}
+              </td>
               <td class="action-cell">
+                <button type="button" class="tbl-link"
+                        onclick="toggleEdit({{ s['id'] }}, '{{ s['name']|e }}', '{{ s['batch'] or '' }}')">
+                  Edit
+                </button>
+                <a href="/admin/submissions?student_id={{ s['id'] }}" class="tbl-link">Subs</a>
                 <form method="POST" action="/admin/student/{{ s['id'] }}/reset_password" style="display:inline">
                   <button type="submit" class="tbl-link">Reset Pwd</button>
                 </form>
                 <form method="POST" action="/admin/student/{{ s['id'] }}/delete" style="display:inline"
-                      onsubmit="return confirm('Remove {{ s['name'] }}?')">
+                      onsubmit="return confirm('Remove {{ s['name']|e }}?')">
                   <button type="submit" class="tbl-link tbl-link-danger">Remove</button>
+                </form>
+              </td>
+            </tr>
+            <!-- inline edit row -->
+            <tr id="edit-{{ s['id'] }}" style="display:none;background:var(--bg1);">
+              <td colspan="4">
+                <form method="POST" action="/admin/student/{{ s['id'] }}/edit"
+                      style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;padding:6px 0;">
+                  <div class="field" style="margin:0;flex:1;min-width:120px;">
+                    <label style="font-size:11px;">Name</label>
+                    <input type="text" name="name" id="edit-name-{{ s['id'] }}"
+                           style="padding:4px 8px;font-size:13px;"/>
+                  </div>
+                  <div class="field" style="margin:0;flex:1;min-width:100px;">
+                    <label style="font-size:11px;">Batch</label>
+                    <select name="batch" id="edit-batch-{{ s['id'] }}" style="padding:4px 8px;font-size:13px;">
+                      <option value="">Keep current</option>
+                      <option value="batch1">Batch 1</option>
+                      <option value="batch2">Batch 2</option>
+                    </select>
+                  </div>
+                  <div class="field" style="margin:0;flex:1;min-width:100px;">
+                    <label style="font-size:11px;">New Password</label>
+                    <input type="text" name="password" placeholder="Leave blank to keep"
+                           style="padding:4px 8px;font-size:13px;"/>
+                  </div>
+                  <button type="submit" class="btn-primary" style="padding:4px 12px;font-size:13px;">Save</button>
+                  <button type="button" class="btn-ghost" style="padding:4px 10px;font-size:13px;"
+                          onclick="toggleEdit({{ s['id'] }})">Cancel</button>
                 </form>
               </td>
             </tr>
@@ -58,4 +113,24 @@
     </div>
   </div>
 </div>
+
+<script>
+function toggleEdit(id, name, batch) {
+  const row = document.getElementById('edit-' + id);
+  if (row.style.display === 'none') {
+    row.style.display = '';
+    const nameInput = document.getElementById('edit-name-' + id);
+    const batchSel  = document.getElementById('edit-batch-' + id);
+    if (name !== undefined) nameInput.value = name;
+    if (batch !== undefined) {
+      for (let opt of batchSel.options) {
+        if (opt.value === batch) { opt.selected = true; break; }
+      }
+    }
+    nameInput.focus();
+  } else {
+    row.style.display = 'none';
+  }
+}
+</script>
 {% endblock %}
